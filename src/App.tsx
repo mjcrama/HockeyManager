@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppProvider, useAppState, useAppDispatch } from './context/AppContext';
+import { Home } from './components/Home';
 import { PlayerManager } from './components/PlayerManager';
 import { FieldSetup } from './components/FieldSetup';
 import { MatchDay } from './components/MatchDay';
@@ -106,26 +107,31 @@ function AppInner() {
         <p>Draai je scherm naar<br />staand formaat</p>
       </div>
       <header className="app__header">
-        <div className="app__logo">
-          <svg viewBox="0 0 32 32" width="32" height="32" className="app__logo-icon">
-            {/* Head */}
-            <circle cx="9" cy="5" r="2.5" fill="#60a5fa"/>
-            {/* Body */}
-            <line x1="9" y1="7.5" x2="15" y2="19" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"/>
-            {/* Legs */}
-            <line x1="15" y1="19" x2="11" y2="29" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"/>
-            <line x1="15" y1="19" x2="18" y2="29" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"/>
-            {/* Arms + stick grip */}
-            <line x1="11" y1="12" x2="22" y2="17" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round"/>
-            {/* Stick shaft + hook */}
-            <path d="M22 17 L26 27 Q27 30 30 28"
-              fill="none" stroke="#93c5fd" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round"/>
-            {/* Ball */}
-            <circle cx="30" cy="27" r="2" fill="#93c5fd"/>
+        <button className="app__logo" onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'home' })}>
+          <svg viewBox="0 0 192 192" width="32" height="32" className="app__logo-icon" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="logoStick" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#2E74D1"/>
+                <stop offset="100%" stopColor="#0B3C8C"/>
+              </linearGradient>
+              <radialGradient id="logoBall" cx="35%" cy="30%" r="75%">
+                <stop offset="0%" stopColor="#FFFFFF"/>
+                <stop offset="100%" stopColor="#E4E8EF"/>
+              </radialGradient>
+            </defs>
+            <g transform="rotate(38 96 96)">
+              <rect x="90" y="30" width="12" height="82" rx="6" fill="url(#logoStick)"/>
+              <rect x="90" y="30" width="12" height="14" rx="5" fill="#0A234F"/>
+              <rect x="91" y="42" width="10" height="6" rx="2.5" fill="#8CC0FF"/>
+              <rect x="91" y="49" width="10" height="6" rx="2.5" fill="#C7E0FF"/>
+              <path d="M90 106 H102 V126 C102 137 94 145 83 145 H73 C65 145 59 139 59 131 C59 123 65 117 73 117 H79 C85 117 90 112 90 106 Z" fill="url(#logoStick)"/>
+            </g>
+            <circle cx="128" cy="127" r="20" fill="url(#logoBall)"/>
+            <circle cx="121" cy="120" r="6" fill="#FFFFFF" opacity="0.7"/>
+            <circle cx="128" cy="127" r="20" fill="none" stroke="#D4DBE5" strokeWidth="2"/>
           </svg>
-          <span>Hockey Manager</span>
-        </div>
+          <span className="app__logo-text">Hockey Manager</span>
+        </button>
         <nav className="app__nav">
           {TABS.map((tab) => (
             <button
@@ -133,12 +139,13 @@ function AppInner() {
               className={`nav-tab${activeTab === tab.id ? ' nav-tab--active' : ''}`}
               onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: tab.id })}
             >
-              {tab.icon}{tab.label}
+              {tab.icon}<span className="nav-tab__label">{tab.label}</span>
             </button>
           ))}
         </nav>
       </header>
       <main className="app__content">
+        {activeTab === 'home' && <Home />}
         {activeTab === 'roster' && <PlayerManager />}
         {activeTab === 'setup' && <FieldSetup />}
         {activeTab === 'matchday' && <MatchDay />}

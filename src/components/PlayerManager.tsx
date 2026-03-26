@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAppState, useAppDispatch } from '../context/AppContext';
 import type { Player, Position } from '../types';
 

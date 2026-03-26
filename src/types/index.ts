@@ -81,7 +81,7 @@ export interface Match {
 export interface AppState {
   players: Player[];
   currentMatch: Match;
-  activeTab: 'roster' | 'setup' | 'matchday' | 'shootout';
+  activeTab: 'home' | 'roster' | 'setup' | 'matchday' | 'shootout';
 }
 
 export type AppAction =

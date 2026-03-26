@@ -44,6 +44,18 @@ const defaultState: AppState = {
 
 function loadState(): AppState {
   try {
+    // Load from share link if present
+    const params = new URLSearchParams(window.location.search);
+    const shared = params.get('share');
+    if (shared) {
+      const json = decodeURIComponent(escape(atob(shared)));
+      localStorage.setItem(STORAGE_KEY, json);
+      window.history.replaceState({}, '', window.location.pathname);
+      return JSON.parse(json) as AppState;
+    }
+  } catch { /* ignore invalid share param */ }
+
+  try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState;
     const parsed = JSON.parse(raw) as AppState;
@@ -67,6 +79,7 @@ function loadState(): AppState {
     return defaultState;
   }
 }
+
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
