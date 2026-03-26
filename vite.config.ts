@@ -25,12 +25,11 @@ export default defineConfig({
         theme_color: '#1565c0',
         orientation: 'portrait',
         icons: [
-          {
-            src: '/HockeyManager/icon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any maskable',
-          },
+          { src: '/HockeyManager/pwa-64x64.png',              sizes: '64x64',     type: 'image/png' },
+          { src: '/HockeyManager/pwa-192x192.png',            sizes: '192x192',   type: 'image/png' },
+          { src: '/HockeyManager/pwa-512x512.png',            sizes: '512x512',   type: 'image/png' },
+          { src: '/HockeyManager/maskable-icon-512x512.png',  sizes: '512x512',   type: 'image/png', purpose: 'maskable' },
+          { src: '/HockeyManager/icon.svg',                   sizes: 'any',       type: 'image/svg+xml' },
         ],
       },
     }),
