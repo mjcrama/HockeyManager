@@ -10,14 +10,15 @@ export default defineConfig({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,ico,png,webp}'],
-        navigateFallback: 'index.html',
+        navigateFallback: '/HockeyManager/index.html',
         runtimeCaching: [],
       },
       manifest: {
         name: 'Hockey Team Manager',
         short_name: 'Hockey',
         description: 'Manage your hockey team lineup, substitutions and shootouts',
-        start_url: '/',
+        start_url: '/HockeyManager/',
+        scope: '/HockeyManager/',
         display: 'fullscreen',
         display_override: ['fullscreen', 'standalone', 'minimal-ui'],
         background_color: '#080e1a',
@@ -25,7 +26,7 @@ export default defineConfig({
         orientation: 'portrait',
         icons: [
           {
-            src: '/icon.svg',
+            src: '/HockeyManager/icon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable',
