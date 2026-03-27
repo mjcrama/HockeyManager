@@ -244,7 +244,7 @@ body {
   background: transparent;
   color: var(--color-text-muted);
   padding: 6px 8px;
-  font-size: 15px;
+  font-size: 20px;
   border-radius: var(--radius-sm);
 }
 .btn--icon:hover {
@@ -259,6 +259,7 @@ body {
 .match-timer__controls .btn--sm {
   min-height: 48px;
   min-width: 48px;
+  font-size: 20px;
 }
 
 /* ===== PLAYER CHIP ===== */
@@ -453,6 +454,7 @@ body {
   padding: 16px;
   transition: all var(--transition);
   min-height: 80px;
+  flex: 1;
 }
 
 .bench--over {
@@ -799,6 +801,10 @@ body {
   align-items: center;
 }
 
+.control-group--actions .btn {
+  min-height: 48px;
+}
+
 .control-group__label {
   font-size: 11px;
   font-weight: 600;
@@ -814,6 +820,7 @@ body {
 
 .control-btn {
   padding: 6px 12px;
+  min-height: 48px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-3);
@@ -1122,6 +1129,7 @@ body {
   border-radius: var(--radius-lg);
   padding: 16px;
   transition: border-color 150ms ease, background 150ms ease;
+  flex: 1;
 }
 
 .match-day__bench--drop-over {
@@ -1930,7 +1938,7 @@ body {
     z-index: 50;
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
-    padding: 6px 8px 8px;
+    padding: 0px 8px 8px;
     max-height: 148px;
     overflow-y: auto;
     flex-direction: column;
@@ -2043,6 +2051,14 @@ body {
     align-items: center;
   }
 
+  .field-setup__mobile-actions .btn {
+    min-height: 48px;
+  }
+
+  .field-setup__settings-toggle {
+    font-size: 20px;
+  }
+
   .field-setup__settings-toggle {
     display: inline-flex;
   }
@@ -2080,7 +2096,7 @@ body {
     z-index: 50;
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
-    padding: 6px 8px 8px;
+    padding: 0px 8px 8px;
     max-height: 148px;
     overflow-y: auto;
     display: flex;
@@ -2201,7 +2217,7 @@ body {
     z-index: 50;
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
-    padding: 6px 8px 8px;
+    padding: 0px 8px 8px;
     max-height: 148px;
     overflow-y: auto;
     flex-direction: column;

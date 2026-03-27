@@ -82,6 +82,7 @@ export function FieldSetup() {
     currentMatch.lineup.filter((e) => e.playerId !== null).map((e) => e.playerId as string)
   );
   const benchPlayers = availablePlayers.filter((p) => !onFieldIds.has(p.id));
+  const unavailablePlayers = players.filter((p) => !p.available);
 
   const positions = getPositions(currentMatch.playerCount, currentMatch.formation);
   const formationOptions = Object.keys(FORMATIONS_BY_COUNT[currentMatch.playerCount]);
@@ -328,18 +329,21 @@ export function FieldSetup() {
                   <SetupBenchChip key={p.id} player={p} />
                 ))}
               </div>
-
-              <h3 className="unavailable__title">Niet Beschikbaar</h3>
-              <div className="unavailable__players">
-                {players.filter((p) => !p.available).map((p) => (
-                  <div key={p.id} className="bench-chip-wrapper bench-chip-wrapper--unavailable">
-                    <div className="player-chip player-chip--medium player-chip--unavailable">
-                      <span className="player-chip__number">#{p.jerseyNumber}</span>
-                      <span className="player-chip__name">{p.name.split(' ')[0]}</span>
+              {unavailablePlayers.length > 0 && ( 
+                <>
+                <h3 className="unavailable__title">Niet Beschikbaar</h3>
+                <div className="unavailable__players">
+                  {unavailablePlayers.map((p) => (
+                    <div key={p.id} className="bench-chip-wrapper bench-chip-wrapper--unavailable">
+                      <div className="player-chip player-chip--medium player-chip--unavailable">
+                        <span className="player-chip__number">#{p.jerseyNumber}</span>
+                        <span className="player-chip__name">{p.name.split(' ')[0]}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                </>
+                )}
             </div>
           </div>
         </div>
