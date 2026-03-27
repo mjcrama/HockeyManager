@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -21,6 +21,23 @@ function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function playEndBeep() {
+  try {
+    const ctx = new AudioContext();
+    [0, 0.4, 0.8].forEach((offset) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.4, ctx.currentTime + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.3);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.3);
+    });
+  } catch { /* audio not available */ }
 }
 
 // Empty drop slot — shown when a field player is being dragged
@@ -72,6 +89,30 @@ export function MatchDay() {
   const { players, currentMatch } = useAppState();
   const dispatch = useAppDispatch();
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const prevSeconds = useRef(currentMatch.timerSeconds);
+
+  // Speel geluid als timer de ingestelde duur bereikt
+  useEffect(() => {
+    const prev = prevSeconds.current;
+    prevSeconds.current = currentMatch.timerSeconds;
+    if (
+      currentMatch.timerRunning &&
+      currentMatch.timerDuration > 0 &&
+      prev < currentMatch.timerDuration &&
+      currentMatch.timerSeconds >= currentMatch.timerDuration
+    ) {
+      playEndBeep();
+    }
+  }, [currentMatch.timerSeconds, currentMatch.timerDuration, currentMatch.timerRunning]);
+
+  const isOvertime = currentMatch.timerDuration > 0 && currentMatch.timerSeconds >= currentMatch.timerDuration;
+  const displaySeconds = currentMatch.timerCountDown
+    ? isOvertime
+      ? currentMatch.timerSeconds - currentMatch.timerDuration
+      : currentMatch.timerDuration - currentMatch.timerSeconds
+    : currentMatch.timerSeconds;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -229,7 +270,9 @@ export function MatchDay() {
             </div>
 
             <div className="match-timer__center">
-              <div className="match-timer__display">{formatTime(currentMatch.timerSeconds)}</div>
+              <div className={`match-timer__display${isOvertime ? ' match-timer__display--overtime' : ''}`}>
+                {isOvertime && currentMatch.timerCountDown ? '+' : ''}{formatTime(displaySeconds)}
+              </div>
               <div className="match-timer__controls">
                 {currentMatch.timerRunning ? (
                   <button className="btn btn--danger btn--sm" onClick={() => dispatch({ type: 'STOP_TIMER' })}>⏸</button>
@@ -240,7 +283,39 @@ export function MatchDay() {
                   dispatch({ type: 'RESET_TIMER' });
                   dispatch({ type: 'RESET_SUBSTITUTIONS' });
                 }}>↺</button>
+                <button
+                  className={`btn btn--ghost btn--sm${settingsOpen ? ' btn--active' : ''}`}
+                  onClick={() => setSettingsOpen((o) => !o)}
+                >⚙</button>
               </div>
+              {settingsOpen && (
+                <div className="timer-settings">
+                  <div className="timer-settings__row">
+                    <label className="timer-settings__label">Duur (min)</label>
+                    <input
+                      className="timer-settings__input"
+                      type="number"
+                      min={1}
+                      max={90}
+                      value={Math.round(currentMatch.timerDuration / 60)}
+                      onChange={(e) => {
+                        const mins = Math.max(1, Math.min(90, Number(e.target.value)));
+                        dispatch({ type: 'SET_TIMER_DURATION', payload: mins * 60 });
+                      }}
+                    />
+                  </div>
+                  <div className="timer-settings__row">
+                    <button
+                      className={`control-btn${!currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
+                      onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: false })}
+                    >Oplopen</button>
+                    <button
+                      className={`control-btn${currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
+                      onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: true })}
+                    >Aftellen</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="match-score__team match-score__team--away">
@@ -251,10 +326,6 @@ export function MatchDay() {
                 <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'away' } })}>+</button>
               </div>
             </div>
-          </div>
-
-          <div className="match-timer__info">
-            <span>{currentMatch.playerCount}v{currentMatch.playerCount} · {currentMatch.formation}</span>
           </div>
         </div>
 

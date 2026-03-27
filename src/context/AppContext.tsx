@@ -31,6 +31,8 @@ function createDefaultMatch(): Match {
     shootouts: [],
     timerSeconds: 0,
     timerRunning: false,
+    timerDuration: 25 * 60,
+    timerCountDown: false,
     homeScore: 0,
     awayScore: 0,
   };
@@ -61,6 +63,8 @@ function loadState(): AppState {
     const parsed = JSON.parse(raw) as AppState;
     parsed.currentMatch.timerRunning = false;
     if (!parsed.currentMatch.shootouts) parsed.currentMatch.shootouts = [];
+    if (parsed.currentMatch.timerDuration == null) parsed.currentMatch.timerDuration = 25 * 60;
+    if (parsed.currentMatch.timerCountDown == null) parsed.currentMatch.timerCountDown = false;
     if (parsed.currentMatch.homeScore == null) parsed.currentMatch.homeScore = 0;
     if (parsed.currentMatch.awayScore == null) parsed.currentMatch.awayScore = 0;
     // Migrate old field sizes / player counts to KNHB format
@@ -229,11 +233,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'TICK_TIMER': {
       if (!state.currentMatch.timerRunning) return state;
+      const next = state.currentMatch.timerSeconds + 1;
       return {
         ...state,
         currentMatch: {
           ...state.currentMatch,
-          timerSeconds: state.currentMatch.timerSeconds + 1,
+          timerSeconds: next,
         },
       };
     }
@@ -262,6 +267,20 @@ function appReducer(state: AppState, action: AppAction): AppState {
           homeScore: 0,
           awayScore: 0,
         },
+      };
+    }
+
+    case 'SET_TIMER_DURATION': {
+      return {
+        ...state,
+        currentMatch: { ...state.currentMatch, timerDuration: action.payload, timerSeconds: 0 },
+      };
+    }
+
+    case 'SET_TIMER_COUNTDOWN': {
+      return {
+        ...state,
+        currentMatch: { ...state.currentMatch, timerCountDown: action.payload, timerSeconds: 0 },
       };
     }
 

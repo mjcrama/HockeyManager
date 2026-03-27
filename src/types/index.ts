@@ -74,6 +74,8 @@ export interface Match {
   shootouts: ShootoutEntry[];
   timerSeconds: number;
   timerRunning: boolean;
+  timerDuration: number;   // seconds, 0 = no limit
+  timerCountDown: boolean;
   homeScore: number;
   awayScore: number;
 }
@@ -106,4 +108,6 @@ export type AppAction =
   | { type: 'RESET_SHOOTOUTS' }
   | { type: 'RESET_SUBSTITUTIONS' }
   | { type: 'SCORE_GOAL'; payload: { team: 'home' | 'away' } }
-  | { type: 'UNDO_GOAL'; payload: { team: 'home' | 'away' } };
+  | { type: 'UNDO_GOAL'; payload: { team: 'home' | 'away' } }
+  | { type: 'SET_TIMER_DURATION'; payload: number }
+  | { type: 'SET_TIMER_COUNTDOWN'; payload: boolean };

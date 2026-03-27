@@ -328,8 +328,9 @@ export function FieldSetup() {
                   <SetupBenchChip key={p.id} player={p} />
                 ))}
               </div>
-              <h3 className="bench__title">Niet Beschikbaar</h3>
-              <div className="bench__players">
+
+              <h3 className="unavailable__title">Niet Beschikbaar</h3>
+              <div className="unavailable__players">
                 {players.filter((p) => !p.available).map((p) => (
                   <div key={p.id} className="bench-chip-wrapper bench-chip-wrapper--unavailable">
                     <div className="player-chip player-chip--medium player-chip--unavailable">

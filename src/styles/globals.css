@@ -256,6 +256,11 @@ body {
   font-size: 12px;
 }
 
+.match-timer__controls .btn--sm {
+  min-height: 48px;
+  min-width: 48px;
+}
+
 /* ===== PLAYER CHIP ===== */
 .player-chip {
   display: inline-flex;
@@ -895,7 +900,7 @@ body {
 
 .match-timer__top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
 }
 
@@ -917,15 +922,68 @@ body {
   line-height: 1;
 }
 
+@keyframes overtime-pulse {
+  0%, 100% { text-shadow: 0 0 10px rgba(239, 68, 68, 0.4), 0 0 30px rgba(239, 68, 68, 0.2); }
+  50%       { text-shadow: 0 0 20px rgba(239, 68, 68, 1),   0 0 60px rgba(239, 68, 68, 0.6); }
+}
+
+.match-timer__display--overtime {
+  color: #ef4444;
+  animation: overtime-pulse 1.2s ease-in-out infinite;
+}
+
 .match-timer__controls {
   display: flex;
   gap: 8px;
 }
 
-.match-timer__info {
+.timer-settings {
+  margin-top: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.timer-settings__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timer-settings__label {
   font-size: 12px;
   color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.timer-settings__input {
+  width: 72px;
+  height: 48px;
+  padding: 4px 8px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 600;
   text-align: center;
+}
+
+.timer-settings .control-btn {
+  min-height: 48px;
+  min-width: 80px;
+  font-size: 14px;
+}
+
+.btn--active {
+  background: rgba(21, 101, 192, 0.2);
+  color: #60a5fa;
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.4);
 }
 
 /* ── Score ────────────────────────────────────────────────────────────────── */
@@ -938,7 +996,7 @@ body {
 }
 
 .match-score__label {
-  font-size: 11px;
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -962,13 +1020,13 @@ body {
 }
 
 .match-score__btn {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 1px solid var(--color-border);
   background: var(--color-surface-3);
   color: var(--color-text-muted);
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -2095,14 +2153,15 @@ body {
     letter-spacing: 2px;
   }
 
-  .match-timer__info {
-    display: none;
-  }
-
   .match-score__team {
     min-width: 60px;
     gap: 2px;
   }
+
+  .match-score__label {
+    font-size: 16px;
+  }
+
 
   .match-score__value {
     font-size: 28px;
@@ -2110,9 +2169,9 @@ body {
   }
 
   .match-score__btn {
-    width: 30px;
-    height: 30px;
-    font-size: 17px;
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
   }
 
   .match-day__main {
