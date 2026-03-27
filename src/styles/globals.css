@@ -256,12 +256,6 @@ body {
   font-size: 12px;
 }
 
-.match-timer__controls .btn--sm {
-  min-height: 48px;
-  min-width: 48px;
-  font-size: 20px;
-}
-
 /* ===== PLAYER CHIP ===== */
 .player-chip {
   display: inline-flex;
@@ -905,18 +899,45 @@ body {
   box-shadow: 0 0 24px rgba(21, 101, 192, 0.15);
 }
 
-.match-timer__top {
+.match-timer__row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+}
+
+/* Rij 1: gecentreerde timer+play, reset+settings rechts */
+.match-timer__row--main {
+  justify-content: center;
+  position: relative;
+}
+
+/* Timer display + play knop gecentreerd */
+.match-timer__center {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
-.match-timer__center {
+/* Reset + settings rechts gepositioneerd */
+.match-timer__secondary {
+  position: absolute;
+  right: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  flex: 1;
+  gap: 8px;
+}
+
+.match-timer__secondary .btn {
+  min-height: 48px;
+  min-width: 48px;
+  font-size: 20px;
+}
+
+/* Rij 3: scores */
+.match-timer__row--scores {
+  justify-content: space-around;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 8px;
 }
 
 .match-timer__display {
@@ -939,21 +960,79 @@ body {
   animation: overtime-pulse 1.2s ease-in-out infinite;
 }
 
-.match-timer__controls {
-  display: flex;
-  gap: 8px;
+.match-timer__play-btn {
+  min-height: 48px;
+  min-width: 48px;
+  font-size: 20px;
+  border-radius: 50%;
 }
 
-.timer-settings {
-  margin-top: 8px;
+.match-timer__controls .btn--sm {
+  min-height: 48px;
+  min-width: 48px;
+  font-size: 20px;
+}
+
+.settings-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.settings-modal {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: min(360px, 90vw);
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-width: 180px;
+  gap: 12px;
+}
+
+.settings-modal__title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.settings-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-modal__field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.settings-modal__close {
+  width: 100%;
+  padding: 12px;
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+  margin-top: 4px;
+}
+
+.settings-modal__close:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }
 
 .timer-settings__row {
@@ -981,10 +1060,63 @@ body {
   text-align: center;
 }
 
-.timer-settings .control-btn {
+.settings-modal .control-btn {
   min-height: 48px;
   min-width: 80px;
   font-size: 14px;
+}
+
+.timer-settings__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 4px 0;
+}
+
+.timer-settings__reset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.timer-settings__reset-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 6px;
+  min-height: 64px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.timer-settings__reset-btn:hover {
+  background: var(--color-surface-3);
+  border-color: var(--color-text-dim);
+}
+
+.timer-settings__reset-btn--danger {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.timer-settings__reset-btn--danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+}
+
+.timer-settings__reset-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .btn--active {
@@ -1171,6 +1303,104 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* ===== RESET MODAL ===== */
+.reset-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.reset-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: min(360px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.reset-modal__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+  margin: 0;
+}
+
+.reset-modal__options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.reset-modal__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 8px;
+  min-height: 80px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.reset-modal__btn:hover {
+  background: var(--color-surface-3);
+  border-color: var(--color-text-dim);
+}
+
+.reset-modal__btn--danger {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.reset-modal__btn--danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+}
+
+.reset-modal__btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.reset-modal__btn-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.reset-modal__cancel {
+  width: 100%;
+  padding: 12px;
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.reset-modal__cancel:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }
 
 /* ===== SUBSTITUTION MODAL ===== */

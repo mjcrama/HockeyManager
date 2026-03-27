@@ -5,6 +5,7 @@ import { PlayerManager } from './components/PlayerManager';
 import { FieldSetup } from './components/FieldSetup';
 import { MatchDay } from './components/MatchDay';
 import { ShootoutTracker } from './components/ShootoutTracker';
+import { OpstellingIcon, WedstrijdIcon } from './components/Icons';
 import type { AppState } from './types';
 
 class ErrorBoundary extends React.Component<
@@ -46,36 +47,7 @@ function SelectieIcon() {
   );
 }
 
-// Opstelling — dots in a 1-3-3-1 formation pattern
-function OpstellingIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={iconStyle}>
-      <circle cx="12" cy="21" r="2"/>
-      <circle cx="5"  cy="16" r="2"/>
-      <circle cx="12" cy="16" r="2"/>
-      <circle cx="19" cy="16" r="2"/>
-      <circle cx="5"  cy="10" r="2"/>
-      <circle cx="12" cy="10" r="2"/>
-      <circle cx="19" cy="10" r="2"/>
-      <circle cx="12" cy="4"  r="2"/>
-    </svg>
-  );
-}
-
-// Wedstrijd — stopwatch
-function WedstrijdIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}>
-      <circle cx="12" cy="14" r="8"/>
-      <path d="M9 2 h6" strokeWidth="2.5"/>
-      <line x1="12" y1="2" x2="12" y2="6"/>
-      <line x1="12" y1="10" x2="12" y2="14"/>
-      <line x1="12" y1="14" x2="16" y2="14"/>
-    </svg>
-  );
-}
-
-// Shootout — goal posts with net
+// Shootout — goal posts with net (local wrapper with nav style)
 function ShootoutIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}>
@@ -91,8 +63,8 @@ function ShootoutIcon() {
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'roster',   label: 'Selectie',   icon: <SelectieIcon />   },
-  { id: 'setup',    label: 'Opstelling', icon: <OpstellingIcon /> },
-  { id: 'matchday', label: 'Wedstrijd',  icon: <WedstrijdIcon />  },
+  { id: 'setup',    label: 'Opstelling', icon: <span style={iconStyle}><OpstellingIcon size={16} /></span>  },
+  { id: 'matchday', label: 'Wedstrijd',  icon: <span style={iconStyle}><WedstrijdIcon size={16} /></span>  },
   { id: 'shootout', label: 'Shootout',   icon: <ShootoutIcon />   },
 ];
 

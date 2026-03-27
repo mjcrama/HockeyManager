@@ -264,6 +264,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
           ...state.currentMatch,
           timerSeconds: 0,
           timerRunning: false,
+        },
+      };
+    }
+
+    case 'RESET_SCORE': {
+      return {
+        ...state,
+        currentMatch: {
+          ...state.currentMatch,
           homeScore: 0,
           awayScore: 0,
         },

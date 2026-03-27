@@ -102,6 +102,7 @@ export type AppAction =
   | { type: 'START_TIMER' }
   | { type: 'STOP_TIMER' }
   | { type: 'RESET_TIMER' }
+  | { type: 'RESET_SCORE' }
   | { type: 'RESET_MATCH' }
   | { type: 'ADD_SHOOTOUT'; payload: { playerId: string; scored: boolean } }
   | { type: 'UNDO_LAST_SHOOTOUT'; payload: { playerId: string } }
