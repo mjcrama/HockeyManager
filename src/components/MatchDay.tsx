@@ -99,7 +99,9 @@ export function MatchDay() {
       .map((e) => e.positionId)
   );
 
-  const benchPlayers = players.filter((p) => p.available && !onFieldIds.has(p.id));
+  const benchPlayers = players
+    .filter((p) => p.available && !onFieldIds.has(p.id))
+    .sort((a, b) => (subCounts.get(a.id) ?? 0) - (subCounts.get(b.id) ?? 0));
   const activePlayer = activePlayerId ? players.find((p) => p.id === activePlayerId) ?? null : null;
   const preferredPositionLabels = activePlayer ? (activePlayer.preferredPositions as string[]) : [];
 

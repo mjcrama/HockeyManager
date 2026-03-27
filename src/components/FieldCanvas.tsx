@@ -297,7 +297,7 @@ function PositionDropZone({
         />
 
       {/* Preferred ring on occupied positions — hide during drag */}
-      {isPreferredPosition && player  && (
+      {isPreferredPosition && (
         <circle cx={cx} cy={cy} r={r + 5}
           fill="none" stroke="#93c5fd" strokeWidth={2} strokeDasharray="6 3" opacity={0.9} />
       )}

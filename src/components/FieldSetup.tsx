@@ -328,21 +328,18 @@ export function FieldSetup() {
                   <SetupBenchChip key={p.id} player={p} />
                 ))}
               </div>
-            </div>
-
-            {players.filter((p) => !p.available).length > 0 && (
-              <div className="field-setup__unavailable">
-                <h4 className="field-setup__unavailable-title">Niet beschikbaar</h4>
-                {players
-                  .filter((p) => !p.available)
-                  .map((p) => (
-                    <div key={p.id} className="player-chip player-chip--small player-chip--unavailable">
+              <h3 className="bench__title">Niet Beschikbaar</h3>
+              <div className="bench__players">
+                {players.filter((p) => !p.available).map((p) => (
+                  <div key={p.id} className="bench-chip-wrapper bench-chip-wrapper--unavailable">
+                    <div className="player-chip player-chip--medium player-chip--unavailable">
                       <span className="player-chip__number">#{p.jerseyNumber}</span>
                       <span className="player-chip__name">{p.name.split(' ')[0]}</span>
                     </div>
-                  ))}
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
