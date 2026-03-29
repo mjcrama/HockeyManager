@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppState, useAppDispatch } from '../context/AppContext';
+import { getPositions } from '../data/formations';
 import type { Player, ShootoutEntry } from '../types';
 
 type SortKey = 'attempts' | 'goals' | 'missed' | 'name';
@@ -33,8 +34,15 @@ export function ShootoutTracker() {
 
   const stats = (p: Player) => statsMap.get(p.id) ?? { attempts: 0, goals: 0 };
 
-  // Only available players are eligible for the picker
-  const availablePlayers = players.filter((p) => p.available);
+  // Find the player currently assigned to the GK position
+  const positions = getPositions(currentMatch.playerCount, currentMatch.formation);
+  const gkPositionId = positions.find((p) => p.label === 'GK')?.id ?? null;
+  const gkPlayerId = gkPositionId
+    ? (currentMatch.lineup.find((e) => e.positionId === gkPositionId)?.playerId ?? null)
+    : null;
+
+  // Only available non-GK players are eligible for the picker
+  const availablePlayers = players.filter((p) => p.available && p.id !== gkPlayerId);
   const nextShooter      = nextShooterId ? players.find((p) => p.id === nextShooterId) ?? null : null;
 
   const totalAttempts = shootouts.length;

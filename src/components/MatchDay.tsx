@@ -24,19 +24,26 @@ function formatTime(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function playEndBeep() {
+function playEndBeep(volume: 'soft' | 'loud') {
   try {
     const ctx = new AudioContext();
-    [0, 0.4, 0.8].forEach((offset) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.4, ctx.currentTime + offset);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.3);
-      osc.start(ctx.currentTime + offset);
-      osc.stop(ctx.currentTime + offset + 0.3);
+    const gainLevel = volume === 'loud' ? 1.0 : 0.3;
+    const roundDuration = 1.1; // 3 beeps × ~0.37s each
+    const pause = 2.0;
+    [0, 1, 2].forEach((round) => {
+      const base = round * (roundDuration + pause);
+      [0, 0.4, 0.8].forEach((offset) => {
+        const t = base + offset;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(gainLevel, ctx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+        osc.start(ctx.currentTime + t);
+        osc.stop(ctx.currentTime + t + 0.3);
+      });
     });
   } catch { /* audio not available */ }
 }
@@ -91,6 +98,12 @@ export function MatchDay() {
   const dispatch = useAppDispatch();
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [durationInput, setDurationInput] = useState(String(Math.round(currentMatch.timerDuration / 60)));
+
+  // Sync input when duration changes externally (e.g. reset)
+  useEffect(() => {
+    setDurationInput(String(Math.round(currentMatch.timerDuration / 60)));
+  }, [currentMatch.timerDuration]);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -104,28 +117,41 @@ export function MatchDay() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [settingsOpen]);
 
-  const prevSeconds = useRef(currentMatch.timerSeconds);
+  // Local tick just to trigger re-renders while running
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!currentMatch.timerRunning) return;
+    const id = setInterval(() => tick((n) => n + 1), 500);
+    return () => clearInterval(id);
+  }, [currentMatch.timerRunning]);
 
-  // Speel geluid als timer de ingestelde duur bereikt
+  // Compute current elapsed seconds from wall clock
+  const currentSeconds = currentMatch.timerRunning && currentMatch.timerStartedAt != null
+    ? currentMatch.timerSeconds + Math.floor((Date.now() - currentMatch.timerStartedAt) / 1000)
+    : currentMatch.timerSeconds;
+
+  // Beep when timer crosses duration
+  const prevSeconds = useRef(currentSeconds);
   useEffect(() => {
     const prev = prevSeconds.current;
-    prevSeconds.current = currentMatch.timerSeconds;
+    prevSeconds.current = currentSeconds;
     if (
       currentMatch.timerRunning &&
       currentMatch.timerDuration > 0 &&
+      currentMatch.timerBeep !== 'off' &&
       prev < currentMatch.timerDuration &&
-      currentMatch.timerSeconds >= currentMatch.timerDuration
+      currentSeconds >= currentMatch.timerDuration
     ) {
-      playEndBeep();
+      playEndBeep(currentMatch.timerBeep);
     }
-  }, [currentMatch.timerSeconds, currentMatch.timerDuration, currentMatch.timerRunning]);
+  });
 
-  const isOvertime = currentMatch.timerDuration > 0 && currentMatch.timerSeconds >= currentMatch.timerDuration;
+  const isOvertime = currentMatch.timerDuration > 0 && currentSeconds >= currentMatch.timerDuration;
   const displaySeconds = currentMatch.timerCountDown
     ? isOvertime
-      ? currentMatch.timerSeconds - currentMatch.timerDuration
-      : currentMatch.timerDuration - currentMatch.timerSeconds
-    : currentMatch.timerSeconds;
+      ? currentSeconds - currentMatch.timerDuration
+      : currentMatch.timerDuration - currentSeconds
+    : currentSeconds;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -210,7 +236,7 @@ export function MatchDay() {
               playerOnId: dropData.benchPlayerId,
               playerOffId: playerId,
               positionId: dragData.sourcePositionId,
-              minute: currentMatch.timerSeconds,
+              minute: currentSeconds,
               timestamp: Date.now(),
             },
           });
@@ -254,7 +280,7 @@ export function MatchDay() {
           playerOnId: playerId,
           playerOffId: currentAtTarget,
           positionId: targetPositionId,
-          minute: currentMatch.timerSeconds,
+          minute: currentSeconds,
           timestamp: Date.now(),
         },
       });
@@ -360,10 +386,15 @@ export function MatchDay() {
                 type="number"
                 min={1}
                 max={90}
-                value={Math.round(currentMatch.timerDuration / 60)}
-                onChange={(e) => {
-                  const mins = Math.max(1, Math.min(90, Number(e.target.value)));
-                  dispatch({ type: 'SET_TIMER_DURATION', payload: mins * 60 });
+                value={durationInput}
+                onChange={(e) => setDurationInput(e.target.value)}
+                onBlur={() => {
+                  const mins = Math.max(1, Math.min(90, parseInt(durationInput, 10)));
+                  if (isNaN(mins)) {
+                    setDurationInput(String(Math.round(currentMatch.timerDuration / 60)));
+                  } else {
+                    dispatch({ type: 'SET_TIMER_DURATION', payload: mins * 60 });
+                  }
                 }}
               />
             </div>
@@ -378,6 +409,18 @@ export function MatchDay() {
                   className={`control-btn${currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
                   onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: true })}
                 >Aftellen</button>
+              </div>
+            </div>
+            <div className="settings-modal__field">
+              <label className="settings-modal__field-label">Geluid bij einde</label>
+              <div className="timer-settings__row">
+                {(['off', 'soft', 'loud'] as const).map((v) => (
+                  <button
+                    key={v}
+                    className={`control-btn${currentMatch.timerBeep === v ? ' control-btn--active' : ''}`}
+                    onClick={() => dispatch({ type: 'SET_TIMER_BEEP', payload: v })}
+                  >{{ off: 'Uit', soft: 'Zacht', loud: 'Hard' }[v]}</button>
+                ))}
               </div>
             </div>
             <div className="timer-settings__divider" />

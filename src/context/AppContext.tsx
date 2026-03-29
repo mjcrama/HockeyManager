@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { AppState, AppAction, Match, LineupEntry } from '../types';
 import { DEFAULT_FORMATIONS, getPositions } from '../data/formations';
 
@@ -30,9 +30,11 @@ function createDefaultMatch(): Match {
     substitutions: [],
     shootouts: [],
     timerSeconds: 0,
+    timerStartedAt: null,
     timerRunning: false,
     timerDuration: 25 * 60,
     timerCountDown: false,
+    timerBeep: 'loud',
     homeScore: 0,
     awayScore: 0,
   };
@@ -62,9 +64,11 @@ function loadState(): AppState {
     if (!raw) return defaultState;
     const parsed = JSON.parse(raw) as AppState;
     parsed.currentMatch.timerRunning = false;
+    parsed.currentMatch.timerStartedAt = null;
     if (!parsed.currentMatch.shootouts) parsed.currentMatch.shootouts = [];
     if (parsed.currentMatch.timerDuration == null) parsed.currentMatch.timerDuration = 25 * 60;
     if (parsed.currentMatch.timerCountDown == null) parsed.currentMatch.timerCountDown = false;
+    if (parsed.currentMatch.timerBeep == null) parsed.currentMatch.timerBeep = 'loud';
     if (parsed.currentMatch.homeScore == null) parsed.currentMatch.homeScore = 0;
     if (parsed.currentMatch.awayScore == null) parsed.currentMatch.awayScore = 0;
     // Migrate old field sizes / player counts to KNHB format
@@ -231,29 +235,29 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
 
-    case 'TICK_TIMER': {
-      if (!state.currentMatch.timerRunning) return state;
-      const next = state.currentMatch.timerSeconds + 1;
+    case 'START_TIMER': {
       return {
         ...state,
         currentMatch: {
           ...state.currentMatch,
-          timerSeconds: next,
+          timerRunning: true,
+          timerStartedAt: Date.now(),
         },
       };
     }
 
-    case 'START_TIMER': {
-      return {
-        ...state,
-        currentMatch: { ...state.currentMatch, timerRunning: true },
-      };
-    }
-
     case 'STOP_TIMER': {
+      const elapsed = state.currentMatch.timerStartedAt != null
+        ? Math.floor((Date.now() - state.currentMatch.timerStartedAt) / 1000)
+        : 0;
       return {
         ...state,
-        currentMatch: { ...state.currentMatch, timerRunning: false },
+        currentMatch: {
+          ...state.currentMatch,
+          timerSeconds: state.currentMatch.timerSeconds + elapsed,
+          timerStartedAt: null,
+          timerRunning: false,
+        },
       };
     }
 
@@ -263,6 +267,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         currentMatch: {
           ...state.currentMatch,
           timerSeconds: 0,
+          timerStartedAt: null,
           timerRunning: false,
         },
       };
@@ -282,14 +287,33 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'SET_TIMER_DURATION': {
       return {
         ...state,
-        currentMatch: { ...state.currentMatch, timerDuration: action.payload, timerSeconds: 0 },
+        currentMatch: {
+          ...state.currentMatch,
+          timerDuration: action.payload,
+          timerSeconds: 0,
+          timerStartedAt: null,
+          timerRunning: false,
+        },
       };
     }
 
     case 'SET_TIMER_COUNTDOWN': {
       return {
         ...state,
-        currentMatch: { ...state.currentMatch, timerCountDown: action.payload, timerSeconds: 0 },
+        currentMatch: {
+          ...state.currentMatch,
+          timerCountDown: action.payload,
+          timerSeconds: 0,
+          timerStartedAt: null,
+          timerRunning: false,
+        },
+      };
+    }
+
+    case 'SET_TIMER_BEEP': {
+      return {
+        ...state,
+        currentMatch: { ...state.currentMatch, timerBeep: action.payload },
       };
     }
 
@@ -379,32 +403,11 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, undefined, loadState);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Persist state to localStorage
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
-
-  // Timer management
-  useEffect(() => {
-    if (state.currentMatch.timerRunning) {
-      timerRef.current = setInterval(() => {
-        dispatch({ type: 'TICK_TIMER' });
-      }, 1000);
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [state.currentMatch.timerRunning]);
 
   const value = { state, dispatch };
 
@@ -434,4 +437,3 @@ export function useAvailableBenchPlayers(): ReturnType<typeof useApp>['state']['
   return state.players.filter((p) => p.available && !onFieldIds.has(p.id));
 }
 
-export { useCallback };

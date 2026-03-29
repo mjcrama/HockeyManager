@@ -72,10 +72,12 @@ export interface Match {
   lineup: LineupEntry[];
   substitutions: Substitution[];
   shootouts: ShootoutEntry[];
-  timerSeconds: number;
+  timerSeconds: number;      // accumulated seconds when paused
+  timerStartedAt: number | null; // Date.now() when last started, null when paused
   timerRunning: boolean;
   timerDuration: number;   // seconds, 0 = no limit
   timerCountDown: boolean;
+  timerBeep: 'off' | 'soft' | 'loud';
   homeScore: number;
   awayScore: number;
 }
@@ -98,7 +100,6 @@ export type AppAction =
   | { type: 'ASSIGN_PLAYER_TO_POSITION'; payload: { positionId: string; playerId: string | null } }
   | { type: 'SET_ACTIVE_TAB'; payload: AppState['activeTab'] }
   | { type: 'ADD_SUBSTITUTION'; payload: Omit<Substitution, 'id'> }
-  | { type: 'TICK_TIMER' }
   | { type: 'START_TIMER' }
   | { type: 'STOP_TIMER' }
   | { type: 'RESET_TIMER' }
@@ -111,4 +112,5 @@ export type AppAction =
   | { type: 'SCORE_GOAL'; payload: { team: 'home' | 'away' } }
   | { type: 'UNDO_GOAL'; payload: { team: 'home' | 'away' } }
   | { type: 'SET_TIMER_DURATION'; payload: number }
-  | { type: 'SET_TIMER_COUNTDOWN'; payload: boolean };
+  | { type: 'SET_TIMER_COUNTDOWN'; payload: boolean }
+  | { type: 'SET_TIMER_BEEP'; payload: 'off' | 'soft' | 'loud' };
