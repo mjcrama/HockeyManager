@@ -357,11 +357,26 @@ body {
 }
 
 .bench-chip-wrapper {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   width: 100%;
   gap: 2px;
+}
+
+.bench-timer-badge {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6rem;
+  line-height: 1;
+  color: var(--color-text-muted, #888);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  z-index: 1;
+  white-space: nowrap;
 }
 
 /* Jersey number: absolute top-left within chip */

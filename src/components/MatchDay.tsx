@@ -66,9 +66,11 @@ interface BenchChipProps {
   player: Player;
   subCount: number;
   subbedOff: boolean;
+  benchTime: number;
+  isDragging: boolean;
 }
 
-function BenchChip({ player, subCount, subbedOff }: BenchChipProps) {
+function BenchChip({ player, subCount, subbedOff, benchTime, isDragging }: BenchChipProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `matchday-bench-drop-${player.id}`,
     data: { isBenchPlayer: true, benchPlayerId: player.id },
@@ -89,6 +91,7 @@ function BenchChip({ player, subCount, subbedOff }: BenchChipProps) {
         isOnField={false}
         subCount={subCount}
       />
+      {!isDragging && <span className="bench-timer-badge">{formatTime(benchTime)}</span>}
     </div>
   );
 }
@@ -99,6 +102,7 @@ export function MatchDay() {
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [durationInput, setDurationInput] = useState(String(Math.round(currentMatch.timerDuration / 60)));
+  const [benchEntryMap, setBenchEntryMap] = useState<Record<string, number>>({});
 
   // Sync input when duration changes externally (e.g. reset)
   useEffect(() => {
@@ -184,6 +188,42 @@ export function MatchDay() {
     .sort((a, b) => (subCounts.get(a.id) ?? 0) - (subCounts.get(b.id) ?? 0));
   const activePlayer = activePlayerId ? players.find((p) => p.id === activePlayerId) ?? null : null;
   const preferredPositionLabels = activePlayer ? (activePlayer.preferredPositions as string[]) : [];
+
+  // Track when players arrive on bench (for bench timers)
+  const prevSubCountRef = useRef(currentMatch.substitutions.length);
+  const prevBenchIdsRef = useRef(new Set<string>());
+  useEffect(() => {
+    const prevSubCount = prevSubCountRef.current;
+    const currSubCount = currentMatch.substitutions.length;
+    prevSubCountRef.current = currSubCount;
+
+    const prevIds = prevBenchIdsRef.current;
+    const currIds = new Set(benchPlayers.map((p) => p.id));
+    prevBenchIdsRef.current = currIds;
+
+    if (currSubCount < prevSubCount) {
+      // Substitutions reset — restart timers for all current bench players
+      const fresh: Record<string, number> = {};
+      benchPlayers.forEach((p) => { fresh[p.id] = currentSeconds; });
+      setBenchEntryMap(fresh);
+      return;
+    }
+
+    // Any player newly appearing on bench gets a fresh start
+    const newOnBench: string[] = [];
+    currIds.forEach((id) => { if (!prevIds.has(id)) newOnBench.push(id); });
+    if (newOnBench.length > 0) {
+      setBenchEntryMap((m) => {
+        const updated = { ...m };
+        newOnBench.forEach((id) => { updated[id] = currentSeconds; });
+        return updated;
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [benchPlayers, currentMatch.substitutions.length]);
+
+  const getBenchTime = (playerId: string) =>
+    Math.max(0, currentSeconds - (benchEntryMap[playerId] ?? 0));
 
   // Show the empty bench slot when a field player is being dragged
   const isDraggingFieldPlayer = activePlayerId !== null && onFieldIds.has(activePlayerId);
@@ -364,6 +404,8 @@ export function MatchDay() {
                     player={p}
                     subCount={subCounts.get(p.id) ?? 0}
                     subbedOff={substitutedOffIds.has(p.id)}
+                    benchTime={getBenchTime(p.id)}
+                    isDragging={activePlayerId === p.id}
                   />
                 ))}
                 {benchPlayers.length === 0 && !isDraggingFieldPlayer && (
