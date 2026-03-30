@@ -389,6 +389,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
 
+    case 'LOAD_REMOTE_STATE': {
+      return {
+        ...state,
+        players: action.payload.players,
+        currentMatch: action.payload.currentMatch,
+      };
+    }
+
     default:
       return state;
   }

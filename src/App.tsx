@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppProvider, useAppState, useAppDispatch } from './context/AppContext';
+import { SessionProvider, useSession } from './context/SessionContext';
+import { FirebaseSync } from './components/FirebaseSync';
 import { Home } from './components/Home';
 import { PlayerManager } from './components/PlayerManager';
 import { FieldSetup } from './components/FieldSetup';
@@ -35,7 +37,6 @@ const iconStyle: React.CSSProperties = {
   display: 'block', marginRight: 5, flexShrink: 0,
 };
 
-// Selectie — two person silhouettes
 function SelectieIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={iconStyle}>
@@ -47,7 +48,6 @@ function SelectieIcon() {
   );
 }
 
-// Shootout — goal posts with net (local wrapper with nav style)
 function ShootoutIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={iconStyle}>
@@ -61,16 +61,71 @@ function ShootoutIcon() {
   );
 }
 
-const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+const ALL_TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'roster',   label: 'Selectie',   icon: <SelectieIcon />   },
   { id: 'setup',    label: 'Opstelling', icon: <span style={iconStyle}><OpstellingIcon size={16} /></span>  },
   { id: 'matchday', label: 'Wedstrijd',  icon: <span style={iconStyle}><WedstrijdIcon size={16} /></span>  },
   { id: 'shootout', label: 'Shootout',   icon: <ShootoutIcon />   },
 ];
 
+// Viewer-only tabs
+const VIEWER_TABS: Tab[] = ['matchday', 'shootout'];
+
+function SessionBar() {
+  const { isCoach, isViewer, sessionId, startSession, stopSession, getViewerUrl } = useSession();
+  const [copied, setCopied] = useState(false);
+
+  function copyLink() {
+    navigator.clipboard.writeText(getViewerUrl()).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  if (isViewer) {
+    return (
+      <div className="session-bar session-bar--viewer">
+        <span className="session-bar__dot session-bar__dot--live" />
+        <span className="session-bar__label">Live meekijken</span>
+      </div>
+    );
+  }
+
+  if (isCoach) {
+    return (
+      <div className="session-bar session-bar--coach">
+        <span className="session-bar__dot session-bar__dot--live" />
+        <span className="session-bar__label">Sessie {sessionId}</span>
+        <button className="btn btn--sm btn--ghost session-bar__btn" onClick={copyLink}>
+          {copied ? '✓ Gekopieerd' : 'Kopieer link'}
+        </button>
+        <button className="btn btn--sm btn--danger session-bar__btn" onClick={stopSession}>
+          Stop
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="session-bar session-bar--idle">
+      <button className="btn btn--sm btn--ghost session-bar__btn" onClick={startSession}>
+        ⬡ Live delen
+      </button>
+    </div>
+  );
+}
+
 function AppInner() {
   const { activeTab } = useAppState();
   const dispatch = useAppDispatch();
+  const { isViewer, sessionId } = useSession();
+
+  const tabs = isViewer
+    ? ALL_TABS.filter((t) => VIEWER_TABS.includes(t.id))
+    : ALL_TABS;
+
+  // Redirect viewer to matchday if on a non-viewer tab
+  const visibleTab = isViewer && !VIEWER_TABS.includes(activeTab) ? 'matchday' : activeTab;
 
   return (
     <div className="app">
@@ -79,7 +134,7 @@ function AppInner() {
         <p>Draai je scherm naar<br />staand formaat</p>
       </div>
       <header className="app__header">
-        <button className="app__logo" onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: 'home' })}>
+        <button className="app__logo" onClick={() => !isViewer && dispatch({ type: 'SET_ACTIVE_TAB', payload: 'home' })}>
           <svg viewBox="0 0 192 192" width="32" height="32" className="app__logo-icon" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="logoStick" x1="0" y1="0" x2="1" y2="1">
@@ -105,24 +160,26 @@ function AppInner() {
           <span className="app__logo-text">Hockey Manager</span>
         </button>
         <nav className="app__nav">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
-              className={`nav-tab${activeTab === tab.id ? ' nav-tab--active' : ''}`}
+              className={`nav-tab${visibleTab === tab.id ? ' nav-tab--active' : ''}`}
               onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: tab.id })}
             >
               {tab.icon}<span className="nav-tab__label">{tab.label}</span>
             </button>
           ))}
         </nav>
+        <SessionBar />
       </header>
       <main className="app__content">
-        {activeTab === 'home' && <Home />}
-        {activeTab === 'roster' && <PlayerManager />}
-        {activeTab === 'setup' && <FieldSetup />}
-        {activeTab === 'matchday' && <MatchDay />}
-        {activeTab === 'shootout' && <ShootoutTracker />}
+        {visibleTab === 'home'     && <Home />}
+        {visibleTab === 'roster'   && <PlayerManager />}
+        {visibleTab === 'setup'    && <FieldSetup />}
+        {visibleTab === 'matchday' && <MatchDay />}
+        {visibleTab === 'shootout' && <ShootoutTracker />}
       </main>
+      {sessionId && <FirebaseSync />}
     </div>
   );
 }
@@ -130,9 +187,11 @@ function AppInner() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AppProvider>
-        <AppInner />
-      </AppProvider>
+      <SessionProvider>
+        <AppProvider>
+          <AppInner />
+        </AppProvider>
+      </SessionProvider>
     </ErrorBoundary>
   );
 }

@@ -113,4 +113,5 @@ export type AppAction =
   | { type: 'UNDO_GOAL'; payload: { team: 'home' | 'away' } }
   | { type: 'SET_TIMER_DURATION'; payload: number }
   | { type: 'SET_TIMER_COUNTDOWN'; payload: boolean }
-  | { type: 'SET_TIMER_BEEP'; payload: 'off' | 'soft' | 'loud' };
+  | { type: 'SET_TIMER_BEEP'; payload: 'off' | 'soft' | 'loud' }
+  | { type: 'LOAD_REMOTE_STATE'; payload: Pick<AppState, 'players' | 'currentMatch'> };

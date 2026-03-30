@@ -147,6 +147,49 @@ body {
   gap: 4px;
 }
 
+/* ── Session bar ───────────────────────────────────────────────────── */
+.session-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.session-bar__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.session-bar__dot--live {
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  animation: live-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.session-bar__label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #9ca3af);
+  white-space: nowrap;
+}
+
+.session-bar--viewer .session-bar__label {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.session-bar__btn {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  min-height: 30px;
+}
+
 .nav-tab {
   display: inline-flex;
   align-items: center;
