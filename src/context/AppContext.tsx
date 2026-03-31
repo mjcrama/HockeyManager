@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { AppState, AppAction, Match, LineupEntry } from '../types';
 import { DEFAULT_FORMATIONS, getPositions } from '../data/formations';
+import { useTeam } from './TeamContext';
 
 const STORAGE_KEY = 'hockey-manager-state';
 
@@ -47,18 +48,6 @@ const defaultState: AppState = {
 };
 
 function loadState(): AppState {
-  try {
-    // Load from share link if present
-    const params = new URLSearchParams(window.location.search);
-    const shared = params.get('share');
-    if (shared) {
-      const json = decodeURIComponent(escape(atob(shared)));
-      localStorage.setItem(STORAGE_KEY, json);
-      window.history.replaceState({}, '', window.location.pathname);
-      return JSON.parse(json) as AppState;
-    }
-  } catch { /* ignore invalid share param */ }
-
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState;
@@ -410,12 +399,15 @@ interface AppContextValue {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const { isViewer } = useTeam();
   const [state, dispatch] = useReducer(appReducer, undefined, loadState);
 
-  // Persist state to localStorage
+  // Only coaches persist state; viewers must not overwrite their own localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    if (!isViewer) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+  }, [state, isViewer]);
 
   const value = { state, dispatch };
 

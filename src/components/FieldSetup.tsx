@@ -351,12 +351,14 @@ export function FieldSetup() {
 
       <DragOverlay>
         {activePlayer && (
-          <PlayerChip
-            player={activePlayer}
-            draggableId={`overlay-${activePlayer.id}`}
-            size="medium"
-            isOverlay
-          />
+          <div className="bench-chip-wrapper bench-chip-wrapper--overlay">
+            <PlayerChip
+              player={activePlayer}
+              draggableId={`overlay-${activePlayer.id}`}
+              size="medium"
+              isOverlay
+            />
+          </div>
         )}
       </DragOverlay>
     </DndContext>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AppProvider, useAppState, useAppDispatch } from './context/AppContext';
-import { SessionProvider, useSession } from './context/SessionContext';
+import { TeamProvider, useTeam } from './context/TeamContext';
 import { FirebaseSync } from './components/FirebaseSync';
 import { Home } from './components/Home';
 import { PlayerManager } from './components/PlayerManager';
@@ -68,49 +68,127 @@ const ALL_TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'shootout', label: 'Shootout',   icon: <ShootoutIcon />   },
 ];
 
-// Viewer-only tabs
 const VIEWER_TABS: Tab[] = ['matchday', 'shootout'];
 
-function SessionBar() {
-  const { isCoach, isViewer, sessionId, startSession, stopSession, getViewerUrl } = useSession();
-  const [copied, setCopied] = useState(false);
+function ShareBar() {
+  const { isViewer, isOnline, teamName, setTeamName, getCoachUrl, getViewerUrl } = useTeam();
+  const [open, setOpen]         = useState(false);
+  const [copied, setCopied]     = useState<'coach' | 'viewer' | null>(null);
+  const [nameInput, setNameInput] = useState(teamName);
 
-  function copyLink() {
-    navigator.clipboard.writeText(getViewerUrl()).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+  // Keep input in sync if another coach changes the name
+  React.useEffect(() => { setNameInput(teamName); }, [teamName]);
+
+  // Close menu on outside click
+  const menuRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!open) return;
+    function handle(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [open]);
+
+  function copy(type: 'coach' | 'viewer') {
+    const url = type === 'coach' ? getCoachUrl() : getViewerUrl();
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(
+        () => { setCopied(type); setTimeout(() => setCopied(null), 2000); },
+        () => { window.prompt('Kopieer deze link:', url); },
+      );
+    } else {
+      window.prompt('Kopieer deze link:', url);
+    }
   }
 
   if (isViewer) {
     return (
       <div className="session-bar session-bar--viewer">
-        <span className="session-bar__dot session-bar__dot--live" />
-        <span className="session-bar__label">Live meekijken</span>
-      </div>
-    );
-  }
-
-  if (isCoach) {
-    return (
-      <div className="session-bar session-bar--coach">
-        <span className="session-bar__dot session-bar__dot--live" />
-        <span className="session-bar__label">Sessie {sessionId}</span>
-        <button className="btn btn--sm btn--ghost session-bar__btn" onClick={copyLink}>
-          {copied ? '✓ Gekopieerd' : 'Kopieer link'}
-        </button>
-        <button className="btn btn--sm btn--danger session-bar__btn" onClick={stopSession}>
-          Stop
-        </button>
+        <span className={`session-bar__dot${isOnline ? ' session-bar__dot--live' : ' session-bar__dot--offline'}`} />
+        <span className="session-bar__label">{teamName || 'Live meekijken'}</span>
       </div>
     );
   }
 
   return (
-    <div className="session-bar session-bar--idle">
-      <button className="btn btn--sm btn--ghost session-bar__btn" onClick={startSession}>
-        ⬡ Live delen
+    <div className="session-bar session-bar--coach" ref={menuRef}>
+      <span className={`session-bar__dot${isOnline ? ' session-bar__dot--live' : ' session-bar__dot--offline'}`} />
+      <span className="session-bar__team-name">{teamName || 'Mijn team'}</span>
+      <button
+        className={`btn btn--sm btn--ghost session-bar__btn${open ? ' btn--active' : ''}`}
+        onClick={() => setOpen((o) => !o)}
+        title="Team instellingen"
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
       </button>
+
+      {open && (
+        <div className="share-menu">
+          {/* Team naam */}
+          <div className="share-menu__name">
+            <label className="share-menu__name-label">Teamnaam</label>
+            <input
+              className="share-menu__name-input"
+              placeholder="bijv. HV Bleiswijk U12"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onBlur={() => { if (nameInput.trim() !== teamName) setTeamName(nameInput.trim()); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setTeamName(nameInput.trim()); e.currentTarget.blur(); } }}
+            />
+          </div>
+          <div className="share-menu__divider" />
+          {/* Links */}
+          <p className="share-menu__section-label">Link delen</p>
+
+          <div className="share-menu__link-row">
+            <div className="share-menu__link-info">
+              <svg className="share-menu__icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <strong>Coach link</strong>
+            </div>
+            <div className="share-menu__link-field">
+              <input
+                className="share-menu__url-input"
+                readOnly
+                value={getCoachUrl()}
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <button className="share-menu__copy-btn" onClick={() => copy('coach')}>
+                {copied === 'coach' ? '✓' : 'Kopieer'}
+              </button>
+            </div>
+          </div>
+
+          <div className="share-menu__link-row">
+            <div className="share-menu__link-info">
+              <svg className="share-menu__icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <strong>Kijker link</strong>
+            </div>
+            <div className="share-menu__link-field">
+              <input
+                className="share-menu__url-input"
+                readOnly
+                value={getViewerUrl()}
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <button className="share-menu__copy-btn" onClick={() => copy('viewer')}>
+                {copied === 'viewer' ? '✓' : 'Kopieer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -118,13 +196,12 @@ function SessionBar() {
 function AppInner() {
   const { activeTab } = useAppState();
   const dispatch = useAppDispatch();
-  const { isViewer, sessionId } = useSession();
+  const { isViewer } = useTeam();
 
   const tabs = isViewer
     ? ALL_TABS.filter((t) => VIEWER_TABS.includes(t.id))
     : ALL_TABS;
 
-  // Redirect viewer to matchday if on a non-viewer tab
   const visibleTab = isViewer && !VIEWER_TABS.includes(activeTab) ? 'matchday' : activeTab;
 
   return (
@@ -170,7 +247,7 @@ function AppInner() {
             </button>
           ))}
         </nav>
-        <SessionBar />
+        <ShareBar />
       </header>
       <main className="app__content">
         {visibleTab === 'home'     && <Home />}
@@ -179,7 +256,7 @@ function AppInner() {
         {visibleTab === 'matchday' && <MatchDay />}
         {visibleTab === 'shootout' && <ShootoutTracker />}
       </main>
-      {sessionId && <FirebaseSync />}
+      <FirebaseSync />
     </div>
   );
 }
@@ -187,11 +264,11 @@ function AppInner() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <SessionProvider>
+      <TeamProvider>
         <AppProvider>
           <AppInner />
         </AppProvider>
-      </SessionProvider>
+      </TeamProvider>
     </ErrorBoundary>
   );
 }

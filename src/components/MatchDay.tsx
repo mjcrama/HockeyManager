@@ -12,6 +12,7 @@ import {
   pointerWithin,
 } from '@dnd-kit/core';
 import { useAppState, useAppDispatch } from '../context/AppContext';
+import { useTeam } from '../context/TeamContext';
 import { FieldCanvas } from './FieldCanvas';
 import { PlayerChip } from './PlayerChip';
 import { getPositions } from '../data/formations';
@@ -99,6 +100,7 @@ function BenchChip({ player, subCount, subbedOff, benchTime, isDragging }: Bench
 export function MatchDay() {
   const { players, currentMatch } = useAppState();
   const dispatch = useAppDispatch();
+  const { isViewer } = useTeam();
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [durationInput, setDurationInput] = useState(String(Math.round(currentMatch.timerDuration / 60)));
@@ -157,10 +159,9 @@ export function MatchDay() {
       : currentMatch.timerDuration - currentSeconds
     : currentSeconds;
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 5 } }),
-  );
+  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
+  const touchSensor   = useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 5 } });
+  const sensors = useSensors(...(isViewer ? [] : [pointerSensor, touchSensor]));
 
   const positions = getPositions(currentMatch.playerCount, currentMatch.formation);
 
@@ -229,13 +230,15 @@ export function MatchDay() {
   const isDraggingFieldPlayer = activePlayerId !== null && onFieldIds.has(activePlayerId);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    if (isViewer) return;
     const data = event.active.data.current as { playerId: string } | undefined;
     if (data?.playerId) setActivePlayerId(data.playerId);
-  }, []);
+  }, [isViewer]);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       setActivePlayerId(null);
+      if (isViewer) return;
       const { active, over } = event;
       if (!over) return;
 
@@ -338,45 +341,61 @@ export function MatchDay() {
       <div className="match-day">
         {/* Timer + Score */}
         <div className="match-timer">
-          {/* Rij 1: gecentreerde timer+play, reset+settings rechts */}
-          <div className="match-timer__row match-timer__row--main">
-            <div className="match-timer__center">
+          {isViewer ? (
+            /* Viewer: timer en score op één rij */
+            <div className="match-timer__row match-timer__row--viewer">
               <div className={`match-timer__display${isOvertime ? ' match-timer__display--overtime' : ''}`}>
                 {isOvertime && currentMatch.timerCountDown ? '+' : ''}{formatTime(displaySeconds)}
               </div>
-              {currentMatch.timerRunning ? (
-                <button className="btn btn--danger match-timer__play-btn" onClick={() => dispatch({ type: 'STOP_TIMER' })}>⏸</button>
-              ) : (
-                <button className="btn btn--primary match-timer__play-btn" onClick={() => dispatch({ type: 'START_TIMER' })}>▶</button>
-              )}
-            </div>
-            <div className="match-timer__secondary">
-              <button
-                className={`btn btn--ghost${settingsOpen ? ' btn--active' : ''}`}
-                onClick={() => setSettingsOpen((o) => !o)}
-              >⚙</button>
-            </div>
-          </div>
-
-          {/* Rij 3: scores */}
-          <div className="match-timer__row match-timer__row--scores">
-            <div className="match-score__team match-score__team--home">
-              <span className="match-score__label">Wij</span>
-              <div className="match-score__controls">
-                <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'home' } })}>−</button>
+              <div className="match-timer__viewer-score">
                 <span className="match-score__value">{currentMatch.homeScore}</span>
-                <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'home' } })}>+</button>
-              </div>
-            </div>
-            <div className="match-score__team match-score__team--away">
-              <span className="match-score__label">Zij</span>
-              <div className="match-score__controls">
-                <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'away' } })}>−</button>
+                <span className="match-timer__viewer-sep">–</span>
                 <span className="match-score__value">{currentMatch.awayScore}</span>
-                <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'away' } })}>+</button>
               </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Rij 1: gecentreerde timer+play, settings rechts */}
+              <div className="match-timer__row match-timer__row--main">
+                <div className="match-timer__center">
+                  <div className={`match-timer__display${isOvertime ? ' match-timer__display--overtime' : ''}`}>
+                    {isOvertime && currentMatch.timerCountDown ? '+' : ''}{formatTime(displaySeconds)}
+                  </div>
+                  {currentMatch.timerRunning ? (
+                    <button className="btn btn--danger match-timer__play-btn" onClick={() => dispatch({ type: 'STOP_TIMER' })}>⏸</button>
+                  ) : (
+                    <button className="btn btn--primary match-timer__play-btn" onClick={() => dispatch({ type: 'START_TIMER' })}>▶</button>
+                  )}
+                </div>
+                <div className="match-timer__secondary">
+                  <button
+                    className={`btn btn--ghost${settingsOpen ? ' btn--active' : ''}`}
+                    onClick={() => setSettingsOpen((o) => !o)}
+                  >⚙</button>
+                </div>
+              </div>
+
+              {/* Rij 2: scores */}
+              <div className="match-timer__row match-timer__row--scores">
+                <div className="match-score__team match-score__team--home">
+                  <span className="match-score__label">Wij</span>
+                  <div className="match-score__controls">
+                    <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'home' } })}>−</button>
+                    <span className="match-score__value">{currentMatch.homeScore}</span>
+                    <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'home' } })}>+</button>
+                  </div>
+                </div>
+                <div className="match-score__team match-score__team--away">
+                  <span className="match-score__label">Zij</span>
+                  <div className="match-score__controls">
+                    <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'away' } })}>−</button>
+                    <span className="match-score__value">{currentMatch.awayScore}</span>
+                    <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'away' } })}>+</button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Main content */}
@@ -511,12 +530,15 @@ export function MatchDay() {
 
       <DragOverlay>
         {activePlayer && (
-          <PlayerChip
-            player={activePlayer}
-            draggableId={`overlay-${activePlayer.id}`}
-            size="medium"
-            isOverlay
-          />
+          <div className="bench-chip-wrapper bench-chip-wrapper--overlay">
+            <PlayerChip
+              player={activePlayer}
+              draggableId={`overlay-${activePlayer.id}`}
+              size="medium"
+              isOverlay
+              subCount={subCounts.get(activePlayer.id) ?? 0}
+            />
+          </div>
         )}
       </DragOverlay>
     </DndContext>

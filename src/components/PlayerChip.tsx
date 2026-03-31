@@ -1,6 +1,5 @@
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
 import type { Player } from '../types';
 
 interface PlayerChipProps {
@@ -22,25 +21,32 @@ export function PlayerChip({
   subCount = 0,
   onClick,
 }: PlayerChipProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: draggableId,
     data: { playerId: player.id, isOnField },
   });
 
   const style: React.CSSProperties = {
-    transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.3 : 1,
-    cursor: isDragging ? 'grabbing' : 'grab',
-    zIndex: isDragging ? 1000 : 'auto',
+    // No transform here — DragOverlay handles the moving visual
+    opacity: isDragging ? 0 : 1,
+    cursor: 'grab',
     position: 'relative',
     touchAction: 'none',
   };
 
   if (isOverlay) {
     return (
-      <div className={`player-chip player-chip--${size} player-chip--overlay`}>
+      <div className={[
+        'player-chip',
+        `player-chip--${size}`,
+        isOnField ? 'player-chip--on-field' : '',
+        'player-chip--overlay',
+      ].filter(Boolean).join(' ')}>
         <span className="player-chip__number">#{player.jerseyNumber}</span>
         <span className="player-chip__name">{player.name}</span>
+        {subCount > 0 && (
+          <span className="player-chip__sub-count">{subCount}↕</span>
+        )}
       </div>
     );
   }

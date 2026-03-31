@@ -1,41 +1,65 @@
-import { useEffect } from 'react';
-import { ref, set, onValue, onDisconnect } from 'firebase/database';
+import { useEffect, useRef } from 'react';
+import { ref, set, onValue } from 'firebase/database';
 import { db } from '../firebase';
 import { useAppState, useAppDispatch } from '../context/AppContext';
-import { useSession } from '../context/SessionContext';
+import { useTeam } from '../context/TeamContext';
+
+const DEBOUNCE_MS = 400;
 
 export function FirebaseSync() {
-  const { sessionId, token, isCoach, isViewer } = useSession();
+  const { teamId, deviceId, isViewer } = useTeam();
   const state = useAppState();
   const dispatch = useAppDispatch();
 
-  // Coach: schrijf state naar Firebase bij elke wijziging
-  useEffect(() => {
-    if (!isCoach || !sessionId || !token) return;
-    const sessionRef = ref(db, `sessions/${sessionId}`);
-    onDisconnect(sessionRef).remove();
-    set(sessionRef, {
-      token,
-      players: state.players,
-      currentMatch: state.currentMatch,
-      lastActive: Date.now(),
-    });
-  }, [state, isCoach, sessionId, token]);
+  const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track the last state we received from Firebase to avoid echoing it back
+  const lastReceivedRef = useRef<string>('');
 
-  // Viewer: luister naar Firebase en update lokale state
+  // Always listen for changes from other coaches
   useEffect(() => {
-    if (!isViewer || !sessionId) return;
-    const sessionRef = ref(db, `sessions/${sessionId}`);
-    const unsubscribe = onValue(sessionRef, (snapshot) => {
+    const teamRef = ref(db, `teams/${teamId}`);
+    const unsubscribe = onValue(teamRef, (snapshot) => {
       const data = snapshot.val();
-      if (!data?.players || !data?.currentMatch) return;
+      if (!data?.state?.players || !data?.state?.currentMatch) return;
+      // Viewers always accept data; coaches skip their own writes to avoid echo
+      if (!isViewer && data._writtenBy === deviceId) return;
+
+      const incoming = JSON.stringify({ p: data.state.players, m: data.state.currentMatch });
+      lastReceivedRef.current = incoming;
+
       dispatch({
         type: 'LOAD_REMOTE_STATE',
-        payload: { players: data.players, currentMatch: data.currentMatch },
+        payload: { players: data.state.players, currentMatch: data.state.currentMatch },
       });
     });
     return () => unsubscribe();
-  }, [isViewer, sessionId, dispatch]);
+  }, [teamId, deviceId, isViewer, dispatch]);
+
+  // Coaches: debounced write on every state change
+  useEffect(() => {
+    if (isViewer) return;
+
+    // Don't echo back what we just received
+    const current = JSON.stringify({ p: state.players, m: state.currentMatch });
+    if (current === lastReceivedRef.current) return;
+
+    if (writeTimer.current) clearTimeout(writeTimer.current);
+    writeTimer.current = setTimeout(() => {
+      const teamRef = ref(db, `teams/${teamId}`);
+      set(teamRef, {
+        _writtenBy: deviceId,
+        state: {
+          players: state.players,
+          currentMatch: state.currentMatch,
+        },
+        lastActive: Date.now(),
+      });
+    }, DEBOUNCE_MS);
+
+    return () => {
+      if (writeTimer.current) clearTimeout(writeTimer.current);
+    };
+  }, [state, teamId, deviceId, isViewer]);
 
   return null;
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppState, useAppDispatch } from '../context/AppContext';
+import { useTeam } from '../context/TeamContext';
 import { getPositions } from '../data/formations';
 import type { Player, ShootoutEntry } from '../types';
 
@@ -16,6 +17,7 @@ function pickFairest(availablePlayers: Player[], shootouts: ShootoutEntry[]): Pl
 export function ShootoutTracker() {
   const { players, currentMatch } = useAppState();
   const dispatch = useAppDispatch();
+  const { isViewer } = useTeam();
   const [nextShooterId, setNextShooterId] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('attempts');
   const [resetArmed, setResetArmed] = useState(false);
@@ -101,8 +103,8 @@ export function ShootoutTracker() {
   return (
     <div className="shootout-tracker">
 
-      {/* Random picker */}
-      <div className="shootout-picker">
+      {/* Random picker — alleen voor coach */}
+      {!isViewer && <div className="shootout-picker">
         <div className="shootout-picker__header">
           <span className="shootout-picker__label">Volgende schutter</span>
           <div className="shootout-picker__header-right">
@@ -114,7 +116,7 @@ export function ShootoutTracker() {
                 </span>
               </span>
             )}
-            {totalAttempts > 0 && (
+            {!isViewer && totalAttempts > 0 && (
               <button
                 className={`btn btn--sm shootout-reset${resetArmed ? ' shootout-reset--armed' : ''}`}
                 onClick={handleReset}
@@ -141,31 +143,35 @@ export function ShootoutTracker() {
                   );
                 })()}
               </div>
-              <div className="shootout-picker__shot-actions">
-                <button
-                  className="btn btn--ghost"
-                  onClick={() => addAttempt(nextShooter.id, false)}
-                >
-                  Gemist
-                </button>
-                <button
-                  className="btn btn--primary"
-                  onClick={() => addAttempt(nextShooter.id, true)}
-                >
-                  Goal
-                </button>
-              </div>
+              {!isViewer && (
+                <div className="shootout-picker__shot-actions">
+                  <button
+                    className="btn btn--ghost"
+                    onClick={() => addAttempt(nextShooter.id, false)}
+                  >
+                    Gemist
+                  </button>
+                  <button
+                    className="btn btn--primary"
+                    onClick={() => addAttempt(nextShooter.id, true)}
+                  >
+                    Goal
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <span className="shootout-picker__empty">—</span>
           )}
-          <button
-            className="btn btn--primary"
-            onClick={handlePickRandom}
-            disabled={!availablePlayers.length}
-          >
-            🎲 Kies random
-          </button>
+          {!isViewer && (
+            <button
+              className="btn btn--primary"
+              onClick={handlePickRandom}
+              disabled={!availablePlayers.length}
+            >
+              🎲 Kies random
+            </button>
+          )}
         </div>
 
         {availablePlayers.length > 0 && (
@@ -174,7 +180,7 @@ export function ShootoutTracker() {
             met het minste aantal pogingen ({minAttempts}×)
           </p>
         )}
-      </div>
+      </div>}
 
       {/* Sort controls */}
       {players.length > 0 && (
@@ -244,31 +250,33 @@ export function ShootoutTracker() {
                   ))}
                 </div>
 
-                <div className="shootout-row__actions">
-                  {s.attempts > 0 && (
+                {!isViewer && (
+                  <div className="shootout-row__actions">
+                    {s.attempts > 0 && (
+                      <button
+                        className="btn btn--icon btn--sm"
+                        onClick={() => undoLast(player.id)}
+                        title="Laatste poging ongedaan maken"
+                      >
+                        ↩
+                      </button>
+                    )}
                     <button
-                      className="btn btn--icon btn--sm"
-                      onClick={() => undoLast(player.id)}
-                      title="Laatste poging ongedaan maken"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => addAttempt(player.id, false)}
+                      disabled={!player.available}
                     >
-                      ↩
+                      Gemist
                     </button>
-                  )}
-                  <button
-                    className="btn btn--ghost btn--sm"
-                    onClick={() => addAttempt(player.id, false)}
-                    disabled={!player.available}
-                  >
-                    Gemist
-                  </button>
-                  <button
-                    className="btn btn--primary btn--sm"
-                    onClick={() => addAttempt(player.id, true)}
-                    disabled={!player.available}
-                  >
-                    Goal
-                  </button>
-                </div>
+                    <button
+                      className="btn btn--primary btn--sm"
+                      onClick={() => addAttempt(player.id, true)}
+                      disabled={!player.available}
+                    >
+                      Goal
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
