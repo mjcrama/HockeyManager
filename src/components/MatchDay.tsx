@@ -190,38 +190,42 @@ export function MatchDay() {
   const activePlayer = activePlayerId ? players.find((p) => p.id === activePlayerId) ?? null : null;
   const preferredPositionLabels = activePlayer ? (activePlayer.preferredPositions as string[]) : [];
 
-  // Track when players arrive on bench (for bench timers)
-  const prevSubCountRef = useRef(currentMatch.substitutions.length);
+  // Stable ID string: only changes when the SET of bench players changes,
+  // not on every re-render (timer ticks, etc.)
+  const benchPlayerIds = benchPlayers.map((p) => p.id).sort().join(',');
+
+  // Detect players newly arriving on the bench
   const prevBenchIdsRef = useRef(new Set<string>());
   useEffect(() => {
-    const prevSubCount = prevSubCountRef.current;
-    const currSubCount = currentMatch.substitutions.length;
-    prevSubCountRef.current = currSubCount;
-
-    const prevIds = prevBenchIdsRef.current;
     const currIds = new Set(benchPlayers.map((p) => p.id));
+    const prevIds = prevBenchIdsRef.current;
     prevBenchIdsRef.current = currIds;
 
-    if (currSubCount < prevSubCount) {
-      // Substitutions reset — restart timers for all current bench players
-      const fresh: Record<string, number> = {};
-      benchPlayers.forEach((p) => { fresh[p.id] = currentSeconds; });
-      setBenchEntryMap(fresh);
-      return;
-    }
-
-    // Any player newly appearing on bench gets a fresh start
-    const newOnBench: string[] = [];
-    currIds.forEach((id) => { if (!prevIds.has(id)) newOnBench.push(id); });
+    const newOnBench = benchPlayers.filter((p) => !prevIds.has(p.id));
     if (newOnBench.length > 0) {
       setBenchEntryMap((m) => {
         const updated = { ...m };
-        newOnBench.forEach((id) => { updated[id] = currentSeconds; });
+        newOnBench.forEach((p) => { updated[p.id] = currentSeconds; });
         return updated;
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [benchPlayers, currentMatch.substitutions.length]);
+  }, [benchPlayerIds]);
+
+  // Reset all bench timers only when substitutions are explicitly cleared
+  const prevSubCountRef = useRef(currentMatch.substitutions.length);
+  useEffect(() => {
+    const prev = prevSubCountRef.current;
+    const curr = currentMatch.substitutions.length;
+    prevSubCountRef.current = curr;
+
+    if (curr === 0 && prev > 0) {
+      const fresh: Record<string, number> = {};
+      benchPlayers.forEach((p) => { fresh[p.id] = currentSeconds; });
+      setBenchEntryMap(fresh);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMatch.substitutions.length]);
 
   const getBenchTime = (playerId: string) =>
     Math.max(0, currentSeconds - (benchEntryMap[playerId] ?? 0));
