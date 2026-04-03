@@ -379,10 +379,16 @@ function appReducer(state: AppState, action: AppAction): AppState {
     }
 
     case 'LOAD_REMOTE_STATE': {
+      const m = action.payload.currentMatch;
       return {
         ...state,
         players: action.payload.players,
-        currentMatch: action.payload.currentMatch,
+        currentMatch: {
+          ...m,
+          lineup:        m.lineup        ?? state.currentMatch.lineup,
+          substitutions: m.substitutions ?? [],
+          shootouts:     m.shootouts     ?? [],
+        },
       };
     }
 
