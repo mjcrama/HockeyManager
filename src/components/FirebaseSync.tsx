@@ -23,6 +23,8 @@ export function FirebaseSync() {
       if (!data?.state?.players || !data?.state?.currentMatch) return;
       // Viewers always accept data; coaches skip their own writes to avoid echo
       if (!isViewer && data._writtenBy === deviceId) return;
+      // Don't overwrite local changes that are still waiting to be written
+      if (!isViewer && writeTimer.current !== null) return;
 
       const incoming = JSON.stringify({ p: data.state.players, m: data.state.currentMatch });
       lastReceivedRef.current = incoming;
