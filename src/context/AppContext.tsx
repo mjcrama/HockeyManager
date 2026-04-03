@@ -434,12 +434,4 @@ export function useAppState(): AppState {
   return useApp().state;
 }
 
-// Selector hook for available players (not on field)
-export function useAvailableBenchPlayers(): ReturnType<typeof useApp>['state']['players'] {
-  const { state } = useApp();
-  const onFieldIds = new Set(
-    state.currentMatch.lineup.filter((e) => e.playerId !== null).map((e) => e.playerId as string)
-  );
-  return state.players.filter((p) => p.available && !onFieldIds.has(p.id));
-}
 

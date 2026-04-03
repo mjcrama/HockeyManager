@@ -15,7 +15,6 @@ const FEATURES: { tab: Exclude<Tab, 'home'>; label: string; description: string 
 
 export function Home() {
   const dispatch = useAppDispatch();
-  const [copied, setCopied] = useState(false);
   const [importError, setImportError] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -50,17 +49,6 @@ export function Home() {
     e.target.value = '';
   }
 
-  function handleShare() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const encoded = btoa(unescape(encodeURIComponent(raw)));
-    const url = `${window.location.origin}${window.location.pathname}?share=${encoded}`;
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
   return (
     <div className="home">
       <div className="home__hero">
@@ -92,9 +80,6 @@ export function Home() {
             ↑ Importeren
           </button>
           <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
-          <button className="btn btn--secondary" onClick={handleShare}>
-            {copied ? '✓ Gekopieerd!' : '⎘ Deel link'}
-          </button>
         </div>
         {importError && <p className="home__import-error">Ongeldig bestand — probeer een geldig export bestand.</p>}
       </div>

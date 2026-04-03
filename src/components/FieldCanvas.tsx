@@ -304,8 +304,6 @@ function PositionDropZone({
       {/* Sub-on ring + badge */}
       {isSubstitutedOn && player && (
         <>
-          {/* <circle cx={cx} cy={cy} r={r + 4}
-            fill="none" stroke="#60a5fa" strokeWidth={2.5} /> */}
           {/* ⇅ badge top-right */}
           <circle cx={cx + r * 0.72} cy={cy - r * 0.72} r={r * 0.38}
             fill="#0d3a8c" stroke="#60a5fa" strokeWidth={1.5} />
