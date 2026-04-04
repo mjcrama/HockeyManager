@@ -515,72 +515,76 @@ export function MatchDay() {
       {settingsOpen && (
         <div className="settings-modal-overlay" onClick={() => setSettingsOpen(false)}>
           <div className="settings-modal" ref={settingsRef} onClick={(e) => e.stopPropagation()}>
-            <p className="settings-modal__title">Instellingen</p>
-            <div className="settings-modal__field">
-              <label className="settings-modal__field-label">Richting</label>
-              <div className="timer-settings__row">
-                <button
-                  className={`control-btn${!currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
-                  onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: false })}
-                >Oplopen</button>
-                <button
-                  className={`control-btn${currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
-                  onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: true })}
-                >Aftellen</button>
-              </div>
+            <div className="settings-modal__header">
+              <span className="settings-modal__header-title">Instellingen</span>
+              <button className="settings-modal__close-x" onClick={() => setSettingsOpen(false)}>✕</button>
             </div>
-            <div className="settings-modal__field">
-              <label className="settings-modal__field-label">Geluid bij einde periode</label>
-              <div className="timer-settings__row">
-                {(['off', 'soft', 'loud'] as const).map((v) => (
+            <div className="settings-modal__body">
+              <div className="settings-modal__field">
+                <label className="settings-modal__field-label">Richting</label>
+                <div className="timer-settings__row">
                   <button
-                    key={v}
-                    className={`control-btn${currentMatch.timerBeep === v ? ' control-btn--active' : ''}`}
-                    onClick={() => dispatch({ type: 'SET_TIMER_BEEP', payload: v })}
-                  >{{ off: 'Uit', soft: 'Zacht', loud: 'Hard' }[v]}</button>
-                ))}
+                    className={`control-btn${!currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
+                    onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: false })}
+                  >Oplopen</button>
+                  <button
+                    className={`control-btn${currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
+                    onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: true })}
+                  >Aftellen</button>
+                </div>
+              </div>
+              <div className="settings-modal__field">
+                <label className="settings-modal__field-label">Geluid bij einde periode</label>
+                <div className="timer-settings__row">
+                  {(['off', 'soft', 'loud'] as const).map((v) => (
+                    <button
+                      key={v}
+                      className={`control-btn${currentMatch.timerBeep === v ? ' control-btn--active' : ''}`}
+                      onClick={() => dispatch({ type: 'SET_TIMER_BEEP', payload: v })}
+                    >{{ off: 'Uit', soft: 'Zacht', loud: 'Hard' }[v]}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="timer-settings__divider" />
+              <p className="settings-modal__title">Resetten</p>
+              <div className="timer-settings__reset-grid">
+                <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_TIMER' }); setSettingsOpen(false); }}>
+                  <span className="timer-settings__reset-icon"><WedstrijdIcon size={20} /></span>
+                  Tijd
+                </button>
+                <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_SCORE' }); setSettingsOpen(false); }}>
+                  <span className="timer-settings__reset-icon"><ScoreIcon size={20} /></span>
+                  Score
+                </button>
+                <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_SUBSTITUTIONS' }); setSettingsOpen(false); }}>
+                  <span className="timer-settings__reset-icon"><WisselsIcon size={20} /></span>
+                  Wissels
+                </button>
+                <button className="timer-settings__reset-btn" onClick={() => {
+                  const original = [...currentMatch.substitutions].reverse().reduce(
+                    (lineup, sub) => lineup.map((e) =>
+                      e.positionId === sub.positionId ? { ...e, playerId: sub.playerOffId } : e
+                    ),
+                    currentMatch.lineup
+                  );
+                  dispatch({ type: 'UPDATE_LINEUP', payload: original });
+                  dispatch({ type: 'RESET_SUBSTITUTIONS' });
+                  setSettingsOpen(false);
+                }}>
+                  <span className="timer-settings__reset-icon"><OpstellingIcon size={20} /></span>
+                  Opstelling
+                </button>
+                <button className="timer-settings__reset-btn timer-settings__reset-btn--danger" onClick={() => {
+                  dispatch({ type: 'RESET_TIMER' });
+                  dispatch({ type: 'RESET_SCORE' });
+                  dispatch({ type: 'RESET_SUBSTITUTIONS' });
+                  setSettingsOpen(false);
+                }}>
+                  <span className="timer-settings__reset-icon">↺</span>
+                  Alles
+                </button>
               </div>
             </div>
-            <div className="timer-settings__divider" />
-            <p className="settings-modal__title">Resetten</p>
-            <div className="timer-settings__reset-grid">
-              <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_TIMER' }); setSettingsOpen(false); }}>
-                <span className="timer-settings__reset-icon"><WedstrijdIcon size={20} /></span>
-                Tijd
-              </button>
-              <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_SCORE' }); setSettingsOpen(false); }}>
-                <span className="timer-settings__reset-icon"><ScoreIcon size={20} /></span>
-                Score
-              </button>
-              <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_SUBSTITUTIONS' }); setSettingsOpen(false); }}>
-                <span className="timer-settings__reset-icon"><WisselsIcon size={20} /></span>
-                Wissels
-              </button>
-              <button className="timer-settings__reset-btn" onClick={() => {
-                const original = [...currentMatch.substitutions].reverse().reduce(
-                  (lineup, sub) => lineup.map((e) =>
-                    e.positionId === sub.positionId ? { ...e, playerId: sub.playerOffId } : e
-                  ),
-                  currentMatch.lineup
-                );
-                dispatch({ type: 'UPDATE_LINEUP', payload: original });
-                dispatch({ type: 'RESET_SUBSTITUTIONS' });
-                setSettingsOpen(false);
-              }}>
-                <span className="timer-settings__reset-icon"><OpstellingIcon size={20} /></span>
-                Opstelling
-              </button>
-              <button className="timer-settings__reset-btn timer-settings__reset-btn--danger" onClick={() => {
-                dispatch({ type: 'RESET_TIMER' });
-                dispatch({ type: 'RESET_SCORE' });
-                dispatch({ type: 'RESET_SUBSTITUTIONS' });
-                setSettingsOpen(false);
-              }}>
-                <span className="timer-settings__reset-icon">↺</span>
-                Alles
-              </button>
-            </div>
-            <button className="settings-modal__close" onClick={() => setSettingsOpen(false)}>Sluiten</button>
           </div>
         </div>
       )}

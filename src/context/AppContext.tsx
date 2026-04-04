@@ -39,7 +39,7 @@ function createDefaultMatch(): Match {
     timerBeep: 'loud',
     homeScore: 0,
     awayScore: 0,
-    matchProfile: 'senior',
+    matchProfile: 'p25',
     periods: 2,
     currentPeriod: 1,
     inBreak: false,
@@ -68,7 +68,7 @@ function loadState(): AppState {
     if (parsed.currentMatch.timerBeep == null) parsed.currentMatch.timerBeep = 'loud';
     if (parsed.currentMatch.homeScore == null) parsed.currentMatch.homeScore = 0;
     if (parsed.currentMatch.awayScore == null) parsed.currentMatch.awayScore = 0;
-    if (parsed.currentMatch.matchProfile == null) parsed.currentMatch.matchProfile = 'custom';
+    if (parsed.currentMatch.matchProfile == null || !['p15','p20','p25','p30','custom'].includes(parsed.currentMatch.matchProfile as string)) parsed.currentMatch.matchProfile = 'custom';
     if (parsed.currentMatch.periods == null) parsed.currentMatch.periods = 2;
     if (parsed.currentMatch.currentPeriod == null) parsed.currentMatch.currentPeriod = 1;
     if (parsed.currentMatch.inBreak == null) parsed.currentMatch.inBreak = false;

@@ -26,9 +26,7 @@ export type Position =
  */
 export type FieldSize = 'full' | 'three-quarter' | 'half' | 'small' | 'mini';
 
-export type MatchProfileKey =
-  | 'o8' | 'o9' | 'o10' | 'o11' | 'o12' | 'o14' | 'o16'
-  | 'senior' | 'zaal' | 'custom';
+export type MatchProfileKey = 'p15' | 'p20' | 'p25' | 'p30' | 'custom';
 
 export type PlayerCount = 11 | 9 | 8 | 6 | 3;
 

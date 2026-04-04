@@ -52,24 +52,22 @@ function SetupBenchChip({ player }: { player: Player }) {
 }
 
 const FIELD_SIZE_OPTIONS: { value: FieldSize; label: string }[] = [
-  { value: 'full',           label: 'Volledig veld (O12+)' },
-  { value: 'three-quarter',  label: '¾ veld (O11)'         },
-  { value: 'half',           label: 'Half veld (O10)'       },
-  { value: 'small',          label: 'Klein veld (O9)'       },
-  { value: 'mini',           label: 'Mini veld (O8)'        },
+  { value: 'full',           label: 'Volledig veld' },
+  { value: 'three-quarter',  label: '¾ veld'        },
+  { value: 'half',           label: 'Half veld'     },
+  { value: 'small',          label: '¼ veld'        },
+  { value: 'mini',           label: '⅛ veld'        },
 ];
 
 const PLAYER_COUNT_OPTIONS: { value: PlayerCount; label: string }[] = [
-  { value: 11, label: '11v11 — O12+' },
-  { value: 9,  label: '9v9   — O11'  },
-  { value: 8,  label: '8v8   — O10'  },
-  { value: 6,  label: '6v6   — O9'   },
-  { value: 3,  label: '3v3   — O8'   },
+  { value: 11, label: '11v11' },
+  { value: 9,  label: '9v9'   },
+  { value: 8,  label: '8v8'   },
+  { value: 6,  label: '6v6'   },
+  { value: 3,  label: '3v3'   },
 ];
 
-const PROFILE_KEYS: MatchProfileKey[] = [
-  'o8', 'o9', 'o10', 'o11', 'o12', 'o14', 'o16', 'senior', 'zaal', 'custom',
-];
+const PROFILE_KEYS: MatchProfileKey[] = ['p15', 'p20', 'p25', 'p30', 'custom'];
 
 function profileChipLabel(key: MatchProfileKey): string {
   if (key === 'custom') return 'Aangepast';
@@ -334,8 +332,11 @@ export function FieldSetup() {
       {settingsOpen && (
         <div className="settings-modal-overlay" onClick={() => setSettingsOpen(false)}>
           <div className="settings-modal settings-modal--wide" ref={settingsRef} onClick={(e) => e.stopPropagation()}>
-            <p className="settings-modal__title">Opstelling instellingen</p>
-
+            <div className="settings-modal__header">
+              <span className="settings-modal__header-title">Opstelling instellingen</span>
+              <button className="settings-modal__close-x" onClick={() => setSettingsOpen(false)}>✕</button>
+            </div>
+            <div className="settings-modal__body">
             <div className="settings-modal__field">
               <label className="settings-modal__field-label">Veldgrootte</label>
               <div className="timer-settings__row" style={{ flexWrap: 'wrap' }}>
@@ -451,7 +452,7 @@ export function FieldSetup() {
               </div>
             </div>
 
-            <button className="settings-modal__close" onClick={() => setSettingsOpen(false)}>Sluiten</button>
+            </div>
           </div>
         </div>
       )}

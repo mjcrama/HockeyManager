@@ -1,6 +1,4 @@
-export type MatchProfileKey =
-  | 'o8' | 'o9' | 'o10' | 'o11' | 'o12' | 'o14' | 'o16'
-  | 'senior' | 'zaal' | 'custom';
+export type MatchProfileKey = 'p15' | 'p20' | 'p25' | 'p30' | 'custom';
 
 export interface MatchProfile {
   label: string;
@@ -10,16 +8,11 @@ export interface MatchProfile {
 }
 
 export const MATCH_PROFILES: Record<MatchProfileKey, MatchProfile> = {
-  o8:     { label: 'O8',        periods: 4, periodMinutes: 8,  breakMinutes: 3  },
-  o9:     { label: 'O9',        periods: 4, periodMinutes: 10, breakMinutes: 3  },
-  o10:    { label: 'O10',       periods: 4, periodMinutes: 10, breakMinutes: 5  },
-  o11:    { label: 'O11',       periods: 4, periodMinutes: 12, breakMinutes: 5  },
-  o12:    { label: 'O12',       periods: 2, periodMinutes: 20, breakMinutes: 10 },
-  o14:    { label: 'O14',       periods: 2, periodMinutes: 25, breakMinutes: 10 },
-  o16:    { label: 'O16',       periods: 2, periodMinutes: 30, breakMinutes: 10 },
-  senior: { label: 'Senioren',  periods: 2, periodMinutes: 35, breakMinutes: 10 },
-  zaal:   { label: 'Zaal',      periods: 2, periodMinutes: 15, breakMinutes: 5  },
-  custom: { label: 'Aangepast', periods: 2, periodMinutes: 25, breakMinutes: 10 },
+  p15:    { label: '2×15 +5',   periods: 2, periodMinutes: 15, breakMinutes: 5 },
+  p20:    { label: '2×20 +5',   periods: 2, periodMinutes: 20, breakMinutes: 5 },
+  p25:    { label: '2×25 +5',   periods: 2, periodMinutes: 25, breakMinutes: 5 },
+  p30:    { label: '2×30 +5',   periods: 2, periodMinutes: 30, breakMinutes: 5 },
+  custom: { label: 'Aangepast', periods: 2, periodMinutes: 25, breakMinutes: 5 },
 };
 
 export function getPeriodLabel(currentPeriod: number, totalPeriods: number): string {
