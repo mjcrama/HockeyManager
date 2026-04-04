@@ -233,6 +233,8 @@ interface PosZoneProps {
   isSubstitutionTarget?: boolean;
   isSubstitutedOn?: boolean;
   isPreferredPosition?: boolean;
+  isSelected?: boolean;
+  onClick?: () => void;
 }
 
 function PositionDropZone({
@@ -241,6 +243,8 @@ function PositionDropZone({
   isSubstitutionTarget = false,
   isSubstitutedOn = false,
   isPreferredPosition = false,
+  isSelected = false,
+  onClick,
 }: PosZoneProps) {
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: `position-${config.id}`,
@@ -265,6 +269,8 @@ function PositionDropZone({
 
   const fill = isDragging
     ? 'rgba(255,255,255,0.06)'
+    : isSelected
+    ? '#1565c0'
     : isOver
     ? 'rgba(96,165,250,0.55)'
     : isSubstitutionTarget
@@ -275,7 +281,9 @@ function PositionDropZone({
     ? 'rgba(13,58,140,0.75)'
     : 'rgba(255,255,255,0.28)';
 
-  const stroke = isOver
+  const stroke = isSelected
+    ? '#93c5fd'
+    : isOver
     ? '#93c5fd'
     : isSubstitutionTarget
     ? '#ff6b35'
@@ -285,12 +293,19 @@ function PositionDropZone({
     ? '#93c5fd'
     : 'rgba(255,255,255,0.35)';
 
-  const strokeW = isOver || isSubstitutionTarget ? 3
+  const strokeW = isSelected || isOver || isSubstitutionTarget ? 3
     : isPreferredPosition ? 2.5
     : 2;
 
   return (
     <g>
+      {isSelected && (
+        <circle cx={cx} cy={cy} r={r + 4}
+          fill="none"
+          stroke="#93c5fd" strokeWidth={6} opacity={0.35}
+          filter="url(#glow-selected)"
+        />
+      )}
       <circle cx={cx} cy={cy} r={r}
         fill={fill} fillOpacity={isDragging ? 0.15 : 1}
         stroke={stroke} strokeWidth={strokeW}
@@ -333,11 +348,12 @@ function PositionDropZone({
           ref={setRef}
           style={{
             width: '100%', height: '100%', borderRadius: '50%',
-            cursor: (!disableDrag && entry.playerId) ? (isDragging ? 'grabbing' : 'grab') : 'default',
+            cursor: onClick ? 'pointer' : (!disableDrag && entry.playerId) ? (isDragging ? 'grabbing' : 'grab') : 'default',
             touchAction: 'none',
           }}
           {...(!disableDrag && entry.playerId ? listeners : {})}
           {...(!disableDrag && entry.playerId ? attributes : {})}
+          onClick={onClick}
         />
       </foreignObject>
     </g>
@@ -355,6 +371,8 @@ interface FieldCanvasProps {
   substitutedOnPositionIds?: Set<string>;
   preferredPositionLabels?: string[];
   className?: string;
+  selectedPositionId?: string | null;
+  onPositionClick?: (positionId: string, playerId: string | null) => void;
 }
 
 export function FieldCanvas({
@@ -364,6 +382,8 @@ export function FieldCanvas({
   substitutedOnPositionIds,
   preferredPositionLabels = [],
   className = '',
+  selectedPositionId = null,
+  onPositionClick,
 }: FieldCanvasProps) {
   const { w: FW, h: FH } = VIEWBOX[fieldSize];
 
@@ -387,6 +407,12 @@ export function FieldCanvas({
     <div className={`field-canvas ${className}`}>
       <svg viewBox={`0 0 ${FW} ${FH}`} preserveAspectRatio="xMidYMin meet"
         className="field-canvas__svg" style={{ width: '100%' }}>
+        <defs>
+          <filter id="glow-selected" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
         {renderField()}
         {positions.map((pos) => {
           const entry = lineup.find((e) => e.positionId === pos.id);
@@ -401,6 +427,8 @@ export function FieldCanvas({
               isSubstitutionTarget={substitutionTargetId === pos.id}
               isSubstitutedOn={substitutedOnPositionIds?.has(pos.id) ?? false}
               isPreferredPosition={matchesPreferred(pos.label, preferredPositionLabels)}
+              isSelected={selectedPositionId === pos.id}
+              onClick={onPositionClick ? () => onPositionClick(pos.id, entry.playerId) : undefined}
             />
           );
         })}

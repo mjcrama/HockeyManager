@@ -70,9 +70,11 @@ interface BenchChipProps {
   subbedOff: boolean;
   benchTime: number;
   isDragging: boolean;
+  isSelected?: boolean;
+  onClick?: () => void;
 }
 
-function BenchChip({ player, subCount, subbedOff, benchTime, isDragging }: BenchChipProps) {
+function BenchChip({ player, subCount, subbedOff, benchTime, isDragging, isSelected, onClick }: BenchChipProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `matchday-bench-drop-${player.id}`,
     data: { isBenchPlayer: true, benchPlayerId: player.id },
@@ -84,7 +86,9 @@ function BenchChip({ player, subCount, subbedOff, benchTime, isDragging }: Bench
       className={[
         subbedOff ? 'bench-chip-wrapper bench-chip-wrapper--subbed' : 'bench-chip-wrapper',
         isOver ? 'bench-chip-wrapper--drop-over' : '',
-      ].join(' ').trim()}
+        isSelected ? 'bench-chip-wrapper--selected' : '',
+      ].filter(Boolean).join(' ')}
+      onClick={onClick}
     >
       <PlayerChip
         player={player}
@@ -98,11 +102,17 @@ function BenchChip({ player, subCount, subbedOff, benchTime, isDragging }: Bench
   );
 }
 
+type SelectedPlayer =
+  | { type: 'field'; positionId: string; playerId: string | null }
+  | { type: 'bench'; playerId: string }
+  | null;
+
 export function MatchDay() {
   const { players, currentMatch } = useAppState();
   const dispatch = useAppDispatch();
   const { isViewer } = useTeam();
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [benchEntryMap, setBenchEntryMap] = useState<Record<string, number>>({});
@@ -267,9 +277,83 @@ export function MatchDay() {
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     if (isViewer) return;
+    setSelectedPlayer(null);
     const data = event.active.data.current as { playerId: string } | undefined;
     if (data?.playerId) setActivePlayerId(data.playerId);
   }, [isViewer]);
+
+  function handlePositionClick(positionId: string, playerId: string | null) {
+    if (isViewer) return;
+    if (!selectedPlayer) {
+      setSelectedPlayer({ type: 'field', positionId, playerId });
+      return;
+    }
+    if (selectedPlayer.type === 'field' && selectedPlayer.positionId === positionId) {
+      setSelectedPlayer(null);
+      return;
+    }
+    if (selectedPlayer.type === 'field') {
+      // Field → Field: swap positions (no substitution)
+      const srcId = selectedPlayer.positionId;
+      const srcPlayerId = selectedPlayer.playerId;
+      const newLineup = currentMatch.lineup.map((e) => {
+        if (e.positionId === positionId) return { ...e, playerId: srcPlayerId };
+        if (e.positionId === srcId)      return { ...e, playerId };
+        return e;
+      });
+      dispatch({ type: 'UPDATE_LINEUP', payload: newLineup });
+      setSelectedPlayer(null);
+      return;
+    }
+    // Bench player selected → substitution if occupied, assign if empty
+    if (playerId) {
+      dispatch({
+        type: 'ADD_SUBSTITUTION',
+        payload: {
+          playerOnId: selectedPlayer.playerId,
+          playerOffId: playerId,
+          positionId,
+          minute: currentSeconds,
+          timestamp: Date.now(),
+        },
+      });
+    } else {
+      dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId, playerId: selectedPlayer.playerId } });
+    }
+    setSelectedPlayer(null);
+  }
+
+  function handleBenchClick(playerId: string) {
+    if (isViewer) return;
+    if (!selectedPlayer) {
+      setSelectedPlayer({ type: 'bench', playerId });
+      return;
+    }
+    if (selectedPlayer.type === 'bench' && selectedPlayer.playerId === playerId) {
+      setSelectedPlayer(null);
+      return;
+    }
+    if (selectedPlayer.type === 'bench') {
+      setSelectedPlayer({ type: 'bench', playerId });
+      return;
+    }
+    // Field position selected → substitute or assign
+    if (selectedPlayer.playerId) {
+      dispatch({
+        type: 'ADD_SUBSTITUTION',
+        payload: {
+          playerOnId: playerId,
+          playerOffId: selectedPlayer.playerId,
+          positionId: selectedPlayer.positionId,
+          minute: currentSeconds,
+          timestamp: Date.now(),
+        },
+      });
+    } else {
+      dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId: selectedPlayer.positionId, playerId } });
+    }
+    setSelectedPlayer(null);
+  }
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -485,6 +569,8 @@ export function MatchDay() {
               substitutedOnPositionIds={substitutedOnPositionIds}
               preferredPositionLabels={preferredPositionLabels}
               className="match-day__canvas"
+              selectedPositionId={selectedPlayer?.type === 'field' ? selectedPlayer.positionId : null}
+              onPositionClick={!isViewer ? handlePositionClick : undefined}
             />
           </div>
 
@@ -501,6 +587,8 @@ export function MatchDay() {
                     subbedOff={substitutedOffIds.has(p.id)}
                     benchTime={getBenchTime(p.id)}
                     isDragging={activePlayerId === p.id}
+                    isSelected={selectedPlayer?.type === 'bench' && selectedPlayer.playerId === p.id}
+                    onClick={!isViewer ? () => handleBenchClick(p.id) : undefined}
                   />
                 ))}
                 {benchPlayers.length === 0 && !isDraggingFieldPlayer && (

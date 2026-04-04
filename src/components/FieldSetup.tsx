@@ -31,7 +31,7 @@ function SetupBenchEmptySlot() {
   );
 }
 
-function SetupBenchChip({ player }: { player: Player }) {
+function SetupBenchChip({ player, isSelected, onClick }: { player: Player; isSelected?: boolean; onClick?: () => void }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `bench-player-${player.id}`,
     data: { isBenchPlayer: true, benchPlayerId: player.id },
@@ -39,7 +39,8 @@ function SetupBenchChip({ player }: { player: Player }) {
   return (
     <div
       ref={setNodeRef}
-      className={['bench-chip-wrapper', isOver ? 'bench-chip-wrapper--drop-over' : ''].join(' ').trim()}
+      className={['bench-chip-wrapper', isOver ? 'bench-chip-wrapper--drop-over' : '', isSelected ? 'bench-chip-wrapper--selected' : ''].filter(Boolean).join(' ')}
+      onClick={onClick}
     >
       <PlayerChip
         player={player}
@@ -75,10 +76,16 @@ function profileChipLabel(key: MatchProfileKey): string {
   return `${p.periods}×${p.periodMinutes} +${p.breakMinutes}`;
 }
 
+type SelectedPlayer =
+  | { type: 'field'; positionId: string; playerId: string | null }
+  | { type: 'bench'; playerId: string }
+  | null;
+
 export function FieldSetup() {
   const { players, currentMatch } = useAppState();
   const dispatch = useAppDispatch();
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const [periodInput, setPeriodInput] = useState(String(currentMatch.periods));
@@ -105,10 +112,55 @@ export function FieldSetup() {
   const isDraggingFieldPlayer = activePlayerId !== null && onFieldIds.has(activePlayerId);
 
   function handleDragStart(event: DragStartEvent) {
+    setSelectedPlayer(null);
     const { data } = event.active;
     if (data.current?.playerId) {
       setActivePlayerId(data.current.playerId as string);
     }
+  }
+
+  function handlePositionClick(positionId: string, playerId: string | null) {
+    if (!selectedPlayer) {
+      setSelectedPlayer({ type: 'field', positionId, playerId });
+      return;
+    }
+    if (selectedPlayer.type === 'field' && selectedPlayer.positionId === positionId) {
+      setSelectedPlayer(null);
+      return;
+    }
+    if (selectedPlayer.type === 'field') {
+      const srcId = selectedPlayer.positionId;
+      const srcPlayerId = selectedPlayer.playerId;
+      const newLineup = currentMatch.lineup.map((e) => {
+        if (e.positionId === positionId) return { ...e, playerId: srcPlayerId };
+        if (e.positionId === srcId)      return { ...e, playerId };
+        return e;
+      });
+      dispatch({ type: 'UPDATE_LINEUP', payload: newLineup });
+      setSelectedPlayer(null);
+      return;
+    }
+    // Bench player selected → assign to clicked field position
+    dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId, playerId: selectedPlayer.playerId } });
+    setSelectedPlayer(null);
+  }
+
+  function handleBenchClick(playerId: string) {
+    if (!selectedPlayer) {
+      setSelectedPlayer({ type: 'bench', playerId });
+      return;
+    }
+    if (selectedPlayer.type === 'bench' && selectedPlayer.playerId === playerId) {
+      setSelectedPlayer(null);
+      return;
+    }
+    if (selectedPlayer.type === 'bench') {
+      setSelectedPlayer({ type: 'bench', playerId });
+      return;
+    }
+    // Field position selected → assign this bench player to that position
+    dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId: selectedPlayer.positionId, playerId } });
+    setSelectedPlayer(null);
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -281,6 +333,8 @@ export function FieldSetup() {
               players={players}
               fieldSize={currentMatch.fieldSize}
               preferredPositionLabels={preferredPositionLabels}
+              selectedPositionId={selectedPlayer?.type === 'field' ? selectedPlayer.positionId : null}
+              onPositionClick={handlePositionClick}
             />
           </div>
 
@@ -293,7 +347,12 @@ export function FieldSetup() {
                   <p className="bench__empty">Geen beschikbare spelers</p>
                 )}
                 {benchPlayers.map((p) => (
-                  <SetupBenchChip key={p.id} player={p} />
+                  <SetupBenchChip
+                    key={p.id}
+                    player={p}
+                    isSelected={selectedPlayer?.type === 'bench' && selectedPlayer.playerId === p.id}
+                    onClick={() => handleBenchClick(p.id)}
+                  />
                 ))}
               </div>
               {unavailablePlayers.length > 0 && ( 
