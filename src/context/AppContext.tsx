@@ -43,6 +43,7 @@ function createDefaultMatch(): Match {
     periods: 2,
     currentPeriod: 1,
     inBreak: false,
+    breakRunning: false,
     breakDuration: 10 * 60,
     breakSeconds: 0,
     breakStartedAt: null,
@@ -72,6 +73,8 @@ function loadState(): AppState {
     if (parsed.currentMatch.periods == null) parsed.currentMatch.periods = 2;
     if (parsed.currentMatch.currentPeriod == null) parsed.currentMatch.currentPeriod = 1;
     if (parsed.currentMatch.inBreak == null) parsed.currentMatch.inBreak = false;
+    if (parsed.currentMatch.breakRunning == null) parsed.currentMatch.breakRunning = false;
+    parsed.currentMatch.breakRunning = false; // never restore a running break across page loads
     if (parsed.currentMatch.breakDuration == null) parsed.currentMatch.breakDuration = 10 * 60;
     if (parsed.currentMatch.breakSeconds == null) parsed.currentMatch.breakSeconds = 0;
     if (parsed.currentMatch.breakStartedAt == null) parsed.currentMatch.breakStartedAt = null;
@@ -275,6 +278,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
           timerRunning: false,
           currentPeriod: 1,
           inBreak: false,
+          breakRunning: false,
           breakSeconds: 0,
           breakStartedAt: null,
         },
@@ -387,7 +391,34 @@ function appReducer(state: AppState, action: AppAction): AppState {
           timerStartedAt: null,
           timerRunning: false,
           inBreak: true,
+          breakRunning: true,
           breakSeconds: 0,
+          breakStartedAt: Date.now(),
+        },
+      };
+    }
+
+    case 'PAUSE_BREAK': {
+      const breakElapsed = state.currentMatch.breakStartedAt != null
+        ? Math.floor((Date.now() - state.currentMatch.breakStartedAt) / 1000)
+        : 0;
+      return {
+        ...state,
+        currentMatch: {
+          ...state.currentMatch,
+          breakRunning: false,
+          breakSeconds: state.currentMatch.breakSeconds + breakElapsed,
+          breakStartedAt: null,
+        },
+      };
+    }
+
+    case 'RESUME_BREAK': {
+      return {
+        ...state,
+        currentMatch: {
+          ...state.currentMatch,
+          breakRunning: true,
           breakStartedAt: Date.now(),
         },
       };
@@ -403,6 +434,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
           timerStartedAt: Date.now(),
           timerRunning: true,
           inBreak: false,
+          breakRunning: false,
           breakSeconds: 0,
           breakStartedAt: null,
         },

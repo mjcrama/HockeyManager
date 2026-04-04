@@ -131,13 +131,13 @@ export function MatchDay() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [settingsOpen]);
 
-  // Local tick to trigger re-renders while running or in break
+  // Local tick to trigger re-renders while running or break is running
   const [, tick] = useState(0);
   useEffect(() => {
-    if (!currentMatch.timerRunning && !currentMatch.inBreak) return;
+    if (!currentMatch.timerRunning && !currentMatch.breakRunning) return;
     const id = setInterval(() => tick((n) => n + 1), 500);
     return () => clearInterval(id);
-  }, [currentMatch.timerRunning, currentMatch.inBreak]);
+  }, [currentMatch.timerRunning, currentMatch.breakRunning]);
 
   // Compute current elapsed seconds from wall clock
   const currentSeconds = currentMatch.timerRunning && currentMatch.timerStartedAt != null
@@ -145,7 +145,7 @@ export function MatchDay() {
     : currentMatch.timerSeconds;
 
   // Compute current break seconds from wall clock
-  const currentBreakSeconds = currentMatch.inBreak && currentMatch.breakStartedAt != null
+  const currentBreakSeconds = currentMatch.breakRunning && currentMatch.breakStartedAt != null
     ? currentMatch.breakSeconds + Math.floor((Date.now() - currentMatch.breakStartedAt) / 1000)
     : currentMatch.breakSeconds;
 
@@ -200,6 +200,29 @@ export function MatchDay() {
 
   const nextPeriodLabel = getPeriodLabel(currentMatch.currentPeriod + 1, currentMatch.periods);
   const endPeriodLabel = isLastPeriod ? 'Wedstrijd beëindigen' : `Einde ${getPeriodLabel(currentMatch.currentPeriod, currentMatch.periods)} →`;
+
+  // Build match progress segments
+  const progressSegments: { type: 'period' | 'break'; duration: number; start: number }[] = [];
+  let segOffset = 0;
+  for (let i = 0; i < currentMatch.periods; i++) {
+    progressSegments.push({ type: 'period', duration: currentMatch.timerDuration, start: segOffset });
+    segOffset += currentMatch.timerDuration;
+    if (i < currentMatch.periods - 1) {
+      progressSegments.push({ type: 'break', duration: currentMatch.breakDuration, start: segOffset });
+      segOffset += currentMatch.breakDuration;
+    }
+  }
+  const totalMatchDuration = segOffset;
+
+  const absolutePosition = isMatchOver
+    ? totalMatchDuration
+    : currentMatch.inBreak
+      ? currentMatch.currentPeriod * currentMatch.timerDuration +
+        (currentMatch.currentPeriod - 1) * currentMatch.breakDuration +
+        currentBreakSeconds
+      : (currentMatch.currentPeriod - 1) * currentMatch.timerDuration +
+        (currentMatch.currentPeriod - 1) * currentMatch.breakDuration +
+        currentSeconds;
 
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
   const touchSensor   = useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 5 } });
@@ -467,7 +490,7 @@ export function MatchDay() {
             onClick={() => !isViewer && setControlsOpen((o) => !o)}
           >
             <span className="match-timer__period-label">{periodLabel}</span>
-            <span className={`match-timer__display${(isOvertime || isBreakOvertime) ? ' match-timer__display--overtime' : ''}${!currentMatch.timerRunning && !currentMatch.inBreak && !isMatchOver ? ' match-timer__display--paused' : ''}`}>
+            <span className={`match-timer__display${(isOvertime || isBreakOvertime) ? ' match-timer__display--overtime' : ''}${(!currentMatch.timerRunning && !currentMatch.inBreak && !isMatchOver) || (currentMatch.inBreak && !currentMatch.breakRunning) ? ' match-timer__display--paused' : ''}`}>
               {currentMatch.inBreak
                 ? (isBreakOvertime ? '+' : '') + formatTime(displayBreakSeconds)
                 : (isOvertime && currentMatch.timerCountDown ? '+' : '') + formatTime(displaySeconds)
@@ -481,26 +504,77 @@ export function MatchDay() {
             )}
           </button>
 
+          {/* Match progress bar */}
+          {totalMatchDuration > 0 && (
+            <div className="match-progress-bar">
+              {progressSegments.map((seg, i) => {
+                const fillPct = Math.min(100, Math.max(0, (absolutePosition - seg.start) / seg.duration) * 100);
+                return (
+                  <div
+                    key={i}
+                    className={`match-progress-bar__segment match-progress-bar__segment--${seg.type}`}
+                    style={{ flex: seg.duration }}
+                  >
+                    <div className="match-progress-bar__fill" style={{ width: `${fillPct}%` }} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {/* Collapsible controls drawer */}
           {controlsOpen && !isViewer && (
             <div className="match-timer__drawer">
               {currentMatch.inBreak ? (
-                <button
-                  className="btn btn--primary match-timer__drawer-btn"
-                  onClick={() => { dispatch({ type: 'START_NEXT_PERIOD' }); setControlsOpen(false); }}
-                >
-                  {nextPeriodLabel} starten →
-                </button>
+                <>
+                  <button
+                    className={`btn match-timer__drawer-btn match-timer__drawer-btn--icon ${currentMatch.breakRunning ? 'btn--danger' : 'btn--primary'}`}
+                    title={currentMatch.breakRunning ? 'Pauzeer rust' : 'Hervat rust'}
+                    onClick={() => { dispatch({ type: currentMatch.breakRunning ? 'PAUSE_BREAK' : 'RESUME_BREAK' }); setControlsOpen(false); }}
+                  >
+                    {currentMatch.breakRunning ? (
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <rect x="5" y="4" width="4" height="16" rx="1" />
+                        <rect x="15" y="4" width="4" height="16" rx="1" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <polygon points="5,3 21,12 5,21" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    className="btn btn--secondary match-timer__drawer-btn match-timer__drawer-btn--icon"
+                    title={`${nextPeriodLabel} starten`}
+                    onClick={() => { dispatch({ type: 'START_NEXT_PERIOD' }); setControlsOpen(false); }}
+                  >
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <line x1="5" y1="3" x2="5" y2="21" />
+                      <path d="M5 3 L19 9 L5 15 Z" fill="currentColor" stroke="none" />
+                    </svg>
+                  </button>
+                </>
               ) : isMatchOver ? null : (
                 <>
                   <button
-                    className={`btn match-timer__drawer-btn ${currentMatch.timerRunning ? 'btn--danger' : 'btn--primary'}`}
+                    className={`btn match-timer__drawer-btn match-timer__drawer-btn--icon ${currentMatch.timerRunning ? 'btn--danger' : 'btn--primary'}`}
+                    title={currentMatch.timerRunning ? 'Pauzeer' : 'Hervat'}
                     onClick={() => { dispatch({ type: currentMatch.timerRunning ? 'STOP_TIMER' : 'START_TIMER' }); setControlsOpen(false); }}
                   >
-                    {currentMatch.timerRunning ? '⏸ Pauzeer' : '▶ Hervat'}
+                    {currentMatch.timerRunning ? (
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <rect x="5" y="4" width="4" height="16" rx="1" />
+                        <rect x="15" y="4" width="4" height="16" rx="1" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <polygon points="5,3 21,12 5,21" />
+                      </svg>
+                    )}
                   </button>
                   <button
-                    className="btn btn--secondary match-timer__drawer-btn"
+                    className="btn btn--secondary match-timer__drawer-btn match-timer__drawer-btn--icon"
+                    title={endPeriodLabel}
                     onClick={() => {
                       if (isLastPeriod) {
                         dispatch({ type: 'STOP_TIMER' });
@@ -510,7 +584,10 @@ export function MatchDay() {
                       setControlsOpen(false);
                     }}
                   >
-                    {endPeriodLabel}
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <line x1="5" y1="3" x2="5" y2="21" />
+                      <path d="M5 3 L19 9 L5 15 Z" fill="currentColor" stroke="none" />
+                    </svg>
                   </button>
                 </>
               )}

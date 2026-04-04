@@ -86,6 +86,7 @@ export interface Match {
   periods: number;           // total number of periods
   currentPeriod: number;     // 1-based
   inBreak: boolean;
+  breakRunning: boolean;
   breakDuration: number;     // seconds
   breakSeconds: number;      // accumulated break seconds when paused
   breakStartedAt: number | null;
@@ -127,5 +128,7 @@ export type AppAction =
   | { type: 'SET_PERIODS'; payload: number }
   | { type: 'SET_BREAK_DURATION'; payload: number }
   | { type: 'END_PERIOD' }
+  | { type: 'PAUSE_BREAK' }
+  | { type: 'RESUME_BREAK' }
   | { type: 'START_NEXT_PERIOD' }
   | { type: 'LOAD_REMOTE_STATE'; payload: Pick<AppState, 'players' | 'currentMatch'> };
