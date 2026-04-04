@@ -26,6 +26,10 @@ export type Position =
  */
 export type FieldSize = 'full' | 'three-quarter' | 'half' | 'small' | 'mini';
 
+export type MatchProfileKey =
+  | 'o8' | 'o9' | 'o10' | 'o11' | 'o12' | 'o14' | 'o16'
+  | 'senior' | 'zaal' | 'custom';
+
 export type PlayerCount = 11 | 9 | 8 | 6 | 3;
 
 export interface Player {
@@ -75,11 +79,18 @@ export interface Match {
   timerSeconds: number;      // accumulated seconds when paused
   timerStartedAt: number | null; // Date.now() when last started, null when paused
   timerRunning: boolean;
-  timerDuration: number;   // seconds, 0 = no limit
+  timerDuration: number;   // seconds per period
   timerCountDown: boolean;
   timerBeep: 'off' | 'soft' | 'loud';
   homeScore: number;
   awayScore: number;
+  matchProfile: MatchProfileKey;
+  periods: number;           // total number of periods
+  currentPeriod: number;     // 1-based
+  inBreak: boolean;
+  breakDuration: number;     // seconds
+  breakSeconds: number;      // accumulated break seconds when paused
+  breakStartedAt: number | null;
 }
 
 export interface AppState {
@@ -114,4 +125,9 @@ export type AppAction =
   | { type: 'SET_TIMER_DURATION'; payload: number }
   | { type: 'SET_TIMER_COUNTDOWN'; payload: boolean }
   | { type: 'SET_TIMER_BEEP'; payload: 'off' | 'soft' | 'loud' }
+  | { type: 'SET_MATCH_PROFILE'; payload: MatchProfileKey }
+  | { type: 'SET_PERIODS'; payload: number }
+  | { type: 'SET_BREAK_DURATION'; payload: number }
+  | { type: 'END_PERIOD' }
+  | { type: 'START_NEXT_PERIOD' }
   | { type: 'LOAD_REMOTE_STATE'; payload: Pick<AppState, 'players' | 'currentMatch'> };

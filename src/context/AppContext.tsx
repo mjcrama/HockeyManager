@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { AppState, AppAction, Match, LineupEntry } from '../types';
 import { DEFAULT_FORMATIONS, getPositions } from '../data/formations';
+import { MATCH_PROFILES } from '../data/matchProfiles';
 import { useTeam } from './TeamContext';
 
 const STORAGE_KEY = 'hockey-manager-state';
@@ -33,11 +34,18 @@ function createDefaultMatch(): Match {
     timerSeconds: 0,
     timerStartedAt: null,
     timerRunning: false,
-    timerDuration: 25 * 60,
+    timerDuration: 35 * 60,
     timerCountDown: false,
     timerBeep: 'loud',
     homeScore: 0,
     awayScore: 0,
+    matchProfile: 'senior',
+    periods: 2,
+    currentPeriod: 1,
+    inBreak: false,
+    breakDuration: 10 * 60,
+    breakSeconds: 0,
+    breakStartedAt: null,
   };
 }
 
@@ -60,6 +68,13 @@ function loadState(): AppState {
     if (parsed.currentMatch.timerBeep == null) parsed.currentMatch.timerBeep = 'loud';
     if (parsed.currentMatch.homeScore == null) parsed.currentMatch.homeScore = 0;
     if (parsed.currentMatch.awayScore == null) parsed.currentMatch.awayScore = 0;
+    if (parsed.currentMatch.matchProfile == null) parsed.currentMatch.matchProfile = 'custom';
+    if (parsed.currentMatch.periods == null) parsed.currentMatch.periods = 2;
+    if (parsed.currentMatch.currentPeriod == null) parsed.currentMatch.currentPeriod = 1;
+    if (parsed.currentMatch.inBreak == null) parsed.currentMatch.inBreak = false;
+    if (parsed.currentMatch.breakDuration == null) parsed.currentMatch.breakDuration = 10 * 60;
+    if (parsed.currentMatch.breakSeconds == null) parsed.currentMatch.breakSeconds = 0;
+    if (parsed.currentMatch.breakStartedAt == null) parsed.currentMatch.breakStartedAt = null;
     // Migrate old field sizes / player counts to KNHB format
     const fs = parsed.currentMatch.fieldSize as string;
     if (fs === 'quarter') {
@@ -258,6 +273,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
           timerSeconds: 0,
           timerStartedAt: null,
           timerRunning: false,
+          currentPeriod: 1,
+          inBreak: false,
+          breakSeconds: 0,
+          breakStartedAt: null,
         },
       };
     }
@@ -278,10 +297,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         currentMatch: {
           ...state.currentMatch,
+          matchProfile: 'custom',
           timerDuration: action.payload,
           timerSeconds: 0,
           timerStartedAt: null,
           timerRunning: false,
+          currentPeriod: 1,
+          inBreak: false,
+          breakSeconds: 0,
+          breakStartedAt: null,
         },
       };
     }
@@ -303,6 +327,85 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         currentMatch: { ...state.currentMatch, timerBeep: action.payload },
+      };
+    }
+
+    case 'SET_MATCH_PROFILE': {
+      const profile = MATCH_PROFILES[action.payload];
+      return {
+        ...state,
+        currentMatch: {
+          ...state.currentMatch,
+          matchProfile: action.payload,
+          periods: profile.periods,
+          timerDuration: profile.periodMinutes * 60,
+          breakDuration: profile.breakMinutes * 60,
+          timerSeconds: 0,
+          timerStartedAt: null,
+          timerRunning: false,
+          currentPeriod: 1,
+          inBreak: false,
+          breakSeconds: 0,
+          breakStartedAt: null,
+        },
+      };
+    }
+
+    case 'SET_PERIODS': {
+      return {
+        ...state,
+        currentMatch: {
+          ...state.currentMatch,
+          matchProfile: 'custom',
+          periods: action.payload,
+        },
+      };
+    }
+
+    case 'SET_BREAK_DURATION': {
+      return {
+        ...state,
+        currentMatch: {
+          ...state.currentMatch,
+          matchProfile: 'custom',
+          breakDuration: action.payload,
+          breakSeconds: 0,
+          breakStartedAt: null,
+        },
+      };
+    }
+
+    case 'END_PERIOD': {
+      const elapsed = state.currentMatch.timerStartedAt != null
+        ? Math.floor((Date.now() - state.currentMatch.timerStartedAt) / 1000)
+        : 0;
+      return {
+        ...state,
+        currentMatch: {
+          ...state.currentMatch,
+          timerSeconds: state.currentMatch.timerSeconds + elapsed,
+          timerStartedAt: null,
+          timerRunning: false,
+          inBreak: true,
+          breakSeconds: 0,
+          breakStartedAt: Date.now(),
+        },
+      };
+    }
+
+    case 'START_NEXT_PERIOD': {
+      return {
+        ...state,
+        currentMatch: {
+          ...state.currentMatch,
+          currentPeriod: state.currentMatch.currentPeriod + 1,
+          timerSeconds: 0,
+          timerStartedAt: Date.now(),
+          timerRunning: true,
+          inBreak: false,
+          breakSeconds: 0,
+          breakStartedAt: null,
+        },
       };
     }
 

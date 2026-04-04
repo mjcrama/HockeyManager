@@ -16,6 +16,7 @@ import { useTeam } from '../context/TeamContext';
 import { FieldCanvas } from './FieldCanvas';
 import { PlayerChip } from './PlayerChip';
 import { getPositions } from '../data/formations';
+import { getPeriodLabel } from '../data/matchProfiles';
 import { WedstrijdIcon, ScoreIcon, WisselsIcon, OpstellingIcon } from './Icons';
 import type { Player } from '../types';
 
@@ -103,14 +104,11 @@ export function MatchDay() {
   const { isViewer } = useTeam();
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [durationInput, setDurationInput] = useState(String(Math.round(currentMatch.timerDuration / 60)));
+  const [controlsOpen, setControlsOpen] = useState(false);
   const [benchEntryMap, setBenchEntryMap] = useState<Record<string, number>>({});
 
-  // Sync input when duration changes externally (e.g. reset)
-  useEffect(() => {
-    setDurationInput(String(Math.round(currentMatch.timerDuration / 60)));
-  }, [currentMatch.timerDuration]);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!settingsOpen) return;
@@ -123,20 +121,25 @@ export function MatchDay() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [settingsOpen]);
 
-  // Local tick just to trigger re-renders while running
+  // Local tick to trigger re-renders while running or in break
   const [, tick] = useState(0);
   useEffect(() => {
-    if (!currentMatch.timerRunning) return;
+    if (!currentMatch.timerRunning && !currentMatch.inBreak) return;
     const id = setInterval(() => tick((n) => n + 1), 500);
     return () => clearInterval(id);
-  }, [currentMatch.timerRunning]);
+  }, [currentMatch.timerRunning, currentMatch.inBreak]);
 
   // Compute current elapsed seconds from wall clock
   const currentSeconds = currentMatch.timerRunning && currentMatch.timerStartedAt != null
     ? currentMatch.timerSeconds + Math.floor((Date.now() - currentMatch.timerStartedAt) / 1000)
     : currentMatch.timerSeconds;
 
-  // Beep when timer crosses duration
+  // Compute current break seconds from wall clock
+  const currentBreakSeconds = currentMatch.inBreak && currentMatch.breakStartedAt != null
+    ? currentMatch.breakSeconds + Math.floor((Date.now() - currentMatch.breakStartedAt) / 1000)
+    : currentMatch.breakSeconds;
+
+  // Beep when period timer crosses duration
   const prevSeconds = useRef(currentSeconds);
   useEffect(() => {
     const prev = prevSeconds.current;
@@ -152,12 +155,41 @@ export function MatchDay() {
     }
   });
 
+  // Close drawer on outside click
+  useEffect(() => {
+    if (!controlsOpen) return;
+    function handle(e: MouseEvent) {
+      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+        setControlsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [controlsOpen]);
+
   const isOvertime = currentMatch.timerDuration > 0 && currentSeconds >= currentMatch.timerDuration;
+  const isBreakOvertime = currentMatch.inBreak && currentMatch.breakDuration > 0 && currentBreakSeconds >= currentMatch.breakDuration;
+  const isMatchOver = currentMatch.currentPeriod > currentMatch.periods && !currentMatch.inBreak;
+  const isLastPeriod = currentMatch.currentPeriod >= currentMatch.periods;
+
   const displaySeconds = currentMatch.timerCountDown
     ? isOvertime
       ? currentSeconds - currentMatch.timerDuration
       : currentMatch.timerDuration - currentSeconds
     : currentSeconds;
+
+  const displayBreakSeconds = isBreakOvertime
+    ? currentBreakSeconds - currentMatch.breakDuration
+    : currentMatch.breakDuration - currentBreakSeconds;
+
+  const periodLabel = isMatchOver
+    ? 'Wedstrijd afgelopen'
+    : currentMatch.inBreak
+      ? 'Rust'
+      : getPeriodLabel(currentMatch.currentPeriod, currentMatch.periods);
+
+  const nextPeriodLabel = getPeriodLabel(currentMatch.currentPeriod + 1, currentMatch.periods);
+  const endPeriodLabel = isLastPeriod ? 'Wedstrijd beëindigen' : `Einde ${getPeriodLabel(currentMatch.currentPeriod, currentMatch.periods)} →`;
 
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
   const touchSensor   = useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 5 } });
@@ -344,12 +376,94 @@ export function MatchDay() {
     >
       <div className="match-day">
         {/* Timer + Score */}
-        <div className="match-timer">
-          {isViewer ? (
-            /* Viewer: timer en score op één rij */
+        <div className="match-timer" ref={drawerRef}>
+          {/* Clickable timer bar */}
+          <button
+            className="match-timer__bar"
+            onClick={() => !isViewer && setControlsOpen((o) => !o)}
+          >
+            <span className="match-timer__period-label">{periodLabel}</span>
+            <span className={`match-timer__display${(isOvertime || isBreakOvertime) ? ' match-timer__display--overtime' : ''}${!currentMatch.timerRunning && !currentMatch.inBreak && !isMatchOver ? ' match-timer__display--paused' : ''}`}>
+              {currentMatch.inBreak
+                ? (isBreakOvertime ? '+' : '') + formatTime(displayBreakSeconds)
+                : (isOvertime && currentMatch.timerCountDown ? '+' : '') + formatTime(displaySeconds)
+              }
+            </span>
+            {!isViewer && (
+              <button
+                className={`match-timer__gear btn btn--ghost${settingsOpen ? ' btn--active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); setControlsOpen(false); setSettingsOpen(true); }}
+              >⚙</button>
+            )}
+          </button>
+
+          {/* Collapsible controls drawer */}
+          {controlsOpen && !isViewer && (
+            <div className="match-timer__drawer">
+              {currentMatch.inBreak ? (
+                <button
+                  className="btn btn--primary match-timer__drawer-btn"
+                  onClick={() => { dispatch({ type: 'START_NEXT_PERIOD' }); setControlsOpen(false); }}
+                >
+                  {nextPeriodLabel} starten →
+                </button>
+              ) : isMatchOver ? null : (
+                <>
+                  <button
+                    className={`btn match-timer__drawer-btn ${currentMatch.timerRunning ? 'btn--danger' : 'btn--primary'}`}
+                    onClick={() => { dispatch({ type: currentMatch.timerRunning ? 'STOP_TIMER' : 'START_TIMER' }); setControlsOpen(false); }}
+                  >
+                    {currentMatch.timerRunning ? '⏸ Pauzeer' : '▶ Hervat'}
+                  </button>
+                  <button
+                    className="btn btn--secondary match-timer__drawer-btn"
+                    onClick={() => {
+                      if (isLastPeriod) {
+                        dispatch({ type: 'STOP_TIMER' });
+                      } else {
+                        dispatch({ type: 'END_PERIOD' });
+                      }
+                      setControlsOpen(false);
+                    }}
+                  >
+                    {endPeriodLabel}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Score row */}
+          {!isViewer && (
+            <div className="match-timer__row match-timer__row--scores">
+              <div className="match-score__team match-score__team--home">
+                <span className="match-score__label">Wij</span>
+                <div className="match-score__controls">
+                  <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'home' } })}>−</button>
+                  <span className="match-score__value">{currentMatch.homeScore}</span>
+                  <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'home' } })}>+</button>
+                </div>
+              </div>
+              <div className="match-score__team match-score__team--away">
+                <span className="match-score__label">Zij</span>
+                <div className="match-score__controls">
+                  <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'away' } })}>−</button>
+                  <span className="match-score__value">{currentMatch.awayScore}</span>
+                  <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'away' } })}>+</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Viewer: period + time only */}
+          {isViewer && (
             <div className="match-timer__row match-timer__row--viewer">
-              <div className={`match-timer__display${isOvertime ? ' match-timer__display--overtime' : ''}`}>
-                {isOvertime && currentMatch.timerCountDown ? '+' : ''}{formatTime(displaySeconds)}
+              <span className="match-timer__viewer-period">{periodLabel}</span>
+              <div className={`match-timer__display${(isOvertime || isBreakOvertime) ? ' match-timer__display--overtime' : ''}`}>
+                {currentMatch.inBreak
+                  ? (isBreakOvertime ? '+' : '') + formatTime(displayBreakSeconds)
+                  : (isOvertime && currentMatch.timerCountDown ? '+' : '') + formatTime(displaySeconds)
+                }
               </div>
               <div className="match-timer__viewer-score">
                 <span className="match-score__value">{currentMatch.homeScore}</span>
@@ -357,48 +471,6 @@ export function MatchDay() {
                 <span className="match-score__value">{currentMatch.awayScore}</span>
               </div>
             </div>
-          ) : (
-            <>
-              {/* Rij 1: gecentreerde timer+play, settings rechts */}
-              <div className="match-timer__row match-timer__row--main">
-                <div className="match-timer__center">
-                  <div className={`match-timer__display${isOvertime ? ' match-timer__display--overtime' : ''}`}>
-                    {isOvertime && currentMatch.timerCountDown ? '+' : ''}{formatTime(displaySeconds)}
-                  </div>
-                  {currentMatch.timerRunning ? (
-                    <button className="btn btn--danger match-timer__play-btn" onClick={() => dispatch({ type: 'STOP_TIMER' })}>⏸</button>
-                  ) : (
-                    <button className="btn btn--primary match-timer__play-btn" onClick={() => dispatch({ type: 'START_TIMER' })}>▶</button>
-                  )}
-                </div>
-                <div className="match-timer__secondary">
-                  <button
-                    className={`btn btn--ghost${settingsOpen ? ' btn--active' : ''}`}
-                    onClick={() => setSettingsOpen((o) => !o)}
-                  >⚙</button>
-                </div>
-              </div>
-
-              {/* Rij 2: scores */}
-              <div className="match-timer__row match-timer__row--scores">
-                <div className="match-score__team match-score__team--home">
-                  <span className="match-score__label">Wij</span>
-                  <div className="match-score__controls">
-                    <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'home' } })}>−</button>
-                    <span className="match-score__value">{currentMatch.homeScore}</span>
-                    <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'home' } })}>+</button>
-                  </div>
-                </div>
-                <div className="match-score__team match-score__team--away">
-                  <span className="match-score__label">Zij</span>
-                  <div className="match-score__controls">
-                    <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'away' } })}>−</button>
-                    <span className="match-score__value">{currentMatch.awayScore}</span>
-                    <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'away' } })}>+</button>
-                  </div>
-                </div>
-              </div>
-            </>
           )}
         </div>
 
@@ -445,25 +517,6 @@ export function MatchDay() {
           <div className="settings-modal" ref={settingsRef} onClick={(e) => e.stopPropagation()}>
             <p className="settings-modal__title">Instellingen</p>
             <div className="settings-modal__field">
-              <label className="settings-modal__field-label">Speelduur (minuten)</label>
-              <input
-                className="timer-settings__input"
-                type="number"
-                min={1}
-                max={90}
-                value={durationInput}
-                onChange={(e) => setDurationInput(e.target.value)}
-                onBlur={() => {
-                  const mins = Math.max(1, Math.min(90, parseInt(durationInput, 10)));
-                  if (isNaN(mins)) {
-                    setDurationInput(String(Math.round(currentMatch.timerDuration / 60)));
-                  } else {
-                    dispatch({ type: 'SET_TIMER_DURATION', payload: mins * 60 });
-                  }
-                }}
-              />
-            </div>
-            <div className="settings-modal__field">
               <label className="settings-modal__field-label">Richting</label>
               <div className="timer-settings__row">
                 <button
@@ -477,7 +530,7 @@ export function MatchDay() {
               </div>
             </div>
             <div className="settings-modal__field">
-              <label className="settings-modal__field-label">Geluid bij einde</label>
+              <label className="settings-modal__field-label">Geluid bij einde periode</label>
               <div className="timer-settings__row">
                 {(['off', 'soft', 'loud'] as const).map((v) => (
                   <button

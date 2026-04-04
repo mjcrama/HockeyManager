@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -15,7 +15,8 @@ import { useAppState, useAppDispatch } from '../context/AppContext';
 import { FieldCanvas } from './FieldCanvas';
 import { PlayerChip } from './PlayerChip';
 import { FORMATIONS_BY_COUNT, getPositions, matchesPreferred } from '../data/formations';
-import type { FieldSize, PlayerCount, Player } from '../types';
+import { MATCH_PROFILES } from '../data/matchProfiles';
+import type { FieldSize, PlayerCount, Player, MatchProfileKey } from '../types';
 
 function SetupBenchEmptySlot() {
   const { setNodeRef, isOver } = useDroppable({
@@ -66,11 +67,25 @@ const PLAYER_COUNT_OPTIONS: { value: PlayerCount; label: string }[] = [
   { value: 3,  label: '3v3   — O8'   },
 ];
 
+const PROFILE_KEYS: MatchProfileKey[] = [
+  'o8', 'o9', 'o10', 'o11', 'o12', 'o14', 'o16', 'senior', 'zaal', 'custom',
+];
+
+function profileChipLabel(key: MatchProfileKey): string {
+  if (key === 'custom') return 'Aangepast';
+  const p = MATCH_PROFILES[key];
+  return `${p.periods}×${p.periodMinutes} +${p.breakMinutes}`;
+}
+
 export function FieldSetup() {
   const { players, currentMatch } = useAppState();
   const dispatch = useAppDispatch();
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
+  const [periodInput, setPeriodInput] = useState(String(currentMatch.periods));
+  const [durationInput, setDurationInput] = useState(String(Math.round(currentMatch.timerDuration / 60)));
+  const [breakInput, setBreakInput] = useState(String(Math.round(currentMatch.breakDuration / 60)));
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -231,77 +246,31 @@ export function FieldSetup() {
       onDragEnd={handleDragEnd}
     >
       <div className="field-setup">
-        {/* Mobile settings toggle */}
+        {/* Top bar */}
         <div className="field-setup__mobile-bar">
           <span className="field-setup__mobile-info">
             {currentMatch.formation} · {currentMatch.playerCount}v{currentMatch.playerCount}
           </span>
           <div className="field-setup__mobile-actions">
-            <button className="btn btn--secondary btn--sm" onClick={handleAutoFill}>Auto invullen</button>
-            <button className="btn btn--ghost btn--sm" onClick={handleClearAll}>Wissen</button>
-            <button
-              className={`btn btn--ghost btn--sm field-setup__settings-toggle${settingsOpen ? ' field-setup__settings-toggle--open' : ''}`}
-              onClick={() => setSettingsOpen((o) => !o)}
-            >
-              ⚙ {settingsOpen ? '▲' : '▼'}
-            </button>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className={`field-setup__controls${settingsOpen ? ' field-setup__controls--open' : ''}`}>
-          <div className="control-group">
-            <label className="control-group__label">Veldgrootte</label>
-            <div className="control-group__options">
-              {FIELD_SIZE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  className={`control-btn${currentMatch.fieldSize === opt.value ? ' control-btn--active' : ''}`}
-                  onClick={() => dispatch({ type: 'SET_FIELD_SIZE', payload: opt.value })}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="control-group">
-            <label className="control-group__label">Aantal spelers</label>
-            <div className="control-group__options">
-              {PLAYER_COUNT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  className={`control-btn${currentMatch.playerCount === opt.value ? ' control-btn--active' : ''}`}
-                  onClick={() => dispatch({ type: 'SET_PLAYER_COUNT', payload: opt.value })}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="control-group">
-            <label className="control-group__label">Formatie</label>
-            <div className="control-group__options">
-              {formationOptions.map((f) => (
-                <button
-                  key={f}
-                  className={`control-btn${currentMatch.formation === f ? ' control-btn--active' : ''}`}
-                  onClick={() => dispatch({ type: 'SET_FORMATION', payload: f })}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="control-group control-group--actions">
             <button className="btn btn--secondary" onClick={handleAutoFill}>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                {/* Wand stick */}
+                <line x1="3" y1="21" x2="12" y2="13" strokeWidth="2.5"/>
+                {/* 4-pointed star at tip, radius 6, center (14, 9) */}
+                <path d="M14 3 L15.7 7.3 L20 9 L15.7 10.7 L14 15 L12.3 10.7 L8 9 L12.3 7.3 Z" fill="currentColor" stroke="none"/>
+                {/* Rays outward from star */}
+                <line x1="14"  y1="2.5" x2="14"  y2="1"   strokeWidth="1.5"/>
+                <line x1="17.5" y1="4.5" x2="19.5" y2="2.5" strokeWidth="1.5"/>
+                <line x1="21"  y1="9"   x2="23"  y2="9"   strokeWidth="1.5"/>
+                <line x1="10.5" y1="4.5" x2="8.5" y2="2.5" strokeWidth="1.5"/>
+              </svg>
               Auto invullen
             </button>
-            <button className="btn btn--ghost" onClick={handleClearAll}>
-              Wissen
-            </button>
+            <button className="btn btn--ghost" onClick={handleClearAll}>Wissen</button>
+            <button
+              className={`btn btn--ghost field-setup__gear-btn${settingsOpen ? ' btn--active' : ''}`}
+              onClick={() => setSettingsOpen(true)}
+            >⚙</button>
           </div>
         </div>
 
@@ -361,6 +330,131 @@ export function FieldSetup() {
           </div>
         )}
       </DragOverlay>
+
+      {settingsOpen && (
+        <div className="settings-modal-overlay" onClick={() => setSettingsOpen(false)}>
+          <div className="settings-modal settings-modal--wide" ref={settingsRef} onClick={(e) => e.stopPropagation()}>
+            <p className="settings-modal__title">Opstelling instellingen</p>
+
+            <div className="settings-modal__field">
+              <label className="settings-modal__field-label">Veldgrootte</label>
+              <div className="timer-settings__row" style={{ flexWrap: 'wrap' }}>
+                {FIELD_SIZE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    className={`control-btn${currentMatch.fieldSize === opt.value ? ' control-btn--active' : ''}`}
+                    onClick={() => dispatch({ type: 'SET_FIELD_SIZE', payload: opt.value })}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="settings-modal__field">
+              <label className="settings-modal__field-label">Aantal spelers</label>
+              <div className="timer-settings__row" style={{ flexWrap: 'wrap' }}>
+                {PLAYER_COUNT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    className={`control-btn${currentMatch.playerCount === opt.value ? ' control-btn--active' : ''}`}
+                    onClick={() => dispatch({ type: 'SET_PLAYER_COUNT', payload: opt.value })}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="settings-modal__field">
+              <label className="settings-modal__field-label">Formatie</label>
+              <div className="timer-settings__row" style={{ flexWrap: 'wrap' }}>
+                {formationOptions.map((f) => (
+                  <button
+                    key={f}
+                    className={`control-btn${currentMatch.formation === f ? ' control-btn--active' : ''}`}
+                    onClick={() => dispatch({ type: 'SET_FORMATION', payload: f })}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="timer-settings__divider" />
+            <p className="settings-modal__title">Wedstrijdtijden</p>
+
+            <div className="settings-modal__field">
+              <div className="timer-settings__row" style={{ flexWrap: 'wrap' }}>
+                {PROFILE_KEYS.map((key) => (
+                  <button
+                    key={key}
+                    className={`control-btn${currentMatch.matchProfile === key ? ' control-btn--active' : ''}`}
+                    onClick={() => {
+                      dispatch({ type: 'SET_MATCH_PROFILE', payload: key });
+                      const p = MATCH_PROFILES[key];
+                      setPeriodInput(String(p.periods));
+                      setDurationInput(String(p.periodMinutes));
+                      setBreakInput(String(p.breakMinutes));
+                    }}
+                  >
+                    {profileChipLabel(key)}
+                  </button>
+                ))}
+              </div>
+              <div className="match-profile-custom">
+                <div className="match-profile-custom__field">
+                  <label className="match-profile-custom__label">Periodes</label>
+                  <input
+                    className="timer-settings__input"
+                    type="number" min={1} max={8}
+                    value={periodInput}
+                    onChange={(e) => setPeriodInput(e.target.value)}
+                    onBlur={() => {
+                      const v = Math.max(1, Math.min(8, parseInt(periodInput, 10)));
+                      if (isNaN(v)) { setPeriodInput(String(currentMatch.periods)); return; }
+                      setPeriodInput(String(v));
+                      dispatch({ type: 'SET_PERIODS', payload: v });
+                    }}
+                  />
+                </div>
+                <div className="match-profile-custom__field">
+                  <label className="match-profile-custom__label">Min/periode</label>
+                  <input
+                    className="timer-settings__input"
+                    type="number" min={1} max={90}
+                    value={durationInput}
+                    onChange={(e) => setDurationInput(e.target.value)}
+                    onBlur={() => {
+                      const v = Math.max(1, Math.min(90, parseInt(durationInput, 10)));
+                      if (isNaN(v)) { setDurationInput(String(Math.round(currentMatch.timerDuration / 60))); return; }
+                      setDurationInput(String(v));
+                      dispatch({ type: 'SET_TIMER_DURATION', payload: v * 60 });
+                    }}
+                  />
+                </div>
+                <div className="match-profile-custom__field">
+                  <label className="match-profile-custom__label">Rust (min)</label>
+                  <input
+                    className="timer-settings__input"
+                    type="number" min={0} max={30}
+                    value={breakInput}
+                    onChange={(e) => setBreakInput(e.target.value)}
+                    onBlur={() => {
+                      const v = Math.max(0, Math.min(30, parseInt(breakInput, 10)));
+                      if (isNaN(v)) { setBreakInput(String(Math.round(currentMatch.breakDuration / 60))); return; }
+                      setBreakInput(String(v));
+                      dispatch({ type: 'SET_BREAK_DURATION', payload: v * 60 });
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button className="settings-modal__close" onClick={() => setSettingsOpen(false)}>Sluiten</button>
+          </div>
+        </div>
+      )}
     </DndContext>
   );
 }
