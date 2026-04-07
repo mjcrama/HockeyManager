@@ -237,10 +237,29 @@ export function MatchDay() {
   const substitutedOffIds = new Set(currentMatch.substitutions.map((s) => s.playerOffId));
   const substitutedOnIds  = new Set(currentMatch.substitutions.map((s) => s.playerOnId));
 
+  // Reconstruct the initial lineup by reversing all substitutions
+  const initialLineup = [...currentMatch.substitutions].reverse().reduce(
+    (lineup, s) => lineup.map((e) => e.positionId === s.positionId ? { ...e, playerId: s.playerOffId } : e),
+    currentMatch.lineup
+  );
+  const initialFieldIds = new Set(
+    initialLineup.filter((e) => e.playerId !== null).map((e) => e.playerId as string)
+  );
+
+  // Players who started on the bench begin with count 1. Only count a substitution when
+  // the incoming player (playerOnId) actually came from the bench — this excludes any
+  // field-to-field swaps that might be recorded as substitutions.
   const subCounts = new Map<string, number>();
+  const currentBenchIds = new Set(
+    players.filter((p) => p.available && !initialFieldIds.has(p.id)).map((p) => p.id)
+  );
+  currentBenchIds.forEach((id) => subCounts.set(id, 1));
   currentMatch.substitutions.forEach((s) => {
-    subCounts.set(s.playerOffId, (subCounts.get(s.playerOffId) ?? 0) + 1);
-    subCounts.set(s.playerOnId,  (subCounts.get(s.playerOnId)  ?? 0) + 1);
+    if (currentBenchIds.has(s.playerOnId)) {
+      subCounts.set(s.playerOffId, (subCounts.get(s.playerOffId) ?? 0) + 1);
+      currentBenchIds.delete(s.playerOnId);
+      currentBenchIds.add(s.playerOffId);
+    }
   });
 
   const substitutedOnPositionIds = new Set(
