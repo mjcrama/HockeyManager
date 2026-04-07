@@ -225,17 +225,203 @@ body {
   .session-bar__team-name { display: none; }
 }
 
-.share-menu {
+.team-switcher {
+  position: relative;
+  display: flex;
+  gap: 4px;
+}
+
+.team-switcher__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-switcher__chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  flex-shrink: 0;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), transform 0.15s;
+}
+
+.team-switcher__chevron:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.team-switcher__chevron--open svg {
+  transform: rotate(180deg);
+}
+
+.team-switcher__dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 4px);
+  left: 0;
   right: 0;
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  min-width: 200px;
-  z-index: 1000;
+  z-index: 100;
   overflow: hidden;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.team-switcher__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.team-switcher__option:hover {
+  background: var(--color-surface-3);
+}
+
+.team-switcher__option--active {
+  color: var(--color-primary, #3b82f6);
+  font-weight: 600;
+}
+
+.team-switcher__option--new {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.team-switcher__option--new:hover {
+  color: var(--color-text);
+}
+
+.team-switcher__check {
+  font-size: 0.75rem;
+  color: var(--color-primary, #3b82f6);
+}
+
+.team-switcher__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 2px 0;
+}
+
+.team-switcher__empty {
+  display: block;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Row wrapper for option + delete button */
+.team-switcher__row {
+  display: flex;
+  align-items: center;
+}
+
+.team-switcher__row .team-switcher__option {
+  flex: 1;
+}
+
+.team-switcher__delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.team-switcher__delete:hover,
+.team-switcher__delete:active {
+  color: #ef4444;
+}
+
+/* Inline confirmation row */
+.team-switcher__confirm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  flex: 1;
+}
+
+.team-switcher__confirm-label {
+  flex: 1;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-switcher__confirm-cancel,
+.team-switcher__confirm-delete {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.team-switcher__confirm-cancel {
+  background: var(--color-surface-3);
+  color: var(--color-text-muted);
+}
+
+.team-switcher__confirm-delete {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.team-switcher__confirm-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Inline dropdown when team is deleted (no absolute positioning) */
+.team-switcher__dropdown--inline {
+  position: static;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+/* Deleted team notice */
+.team-deleted-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  color: #fca5a5;
+}
+
+.team-deleted-notice__icon {
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .share-menu__link-row {
@@ -305,28 +491,6 @@ body {
   color: var(--color-text);
 }
 
-.share-menu__item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 14px;
-  background: none;
-  border: none;
-  color: var(--color-text);
-  cursor: pointer;
-  text-align: left;
-  transition: background var(--transition);
-}
-
-.share-menu__item:hover {
-  background: var(--color-surface-3);
-}
-
-.share-menu__item + .share-menu__item {
-  border-top: 1px solid var(--color-border);
-}
-
 .share-menu__name {
   padding: 10px 14px 8px;
   display: flex;
@@ -374,22 +538,6 @@ body {
 .share-menu__icon {
   flex-shrink: 0;
   color: #60a5fa;
-}
-
-.share-menu__item span:last-child {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.share-menu__item strong {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.share-menu__item small {
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
 }
 
 .nav-tab {

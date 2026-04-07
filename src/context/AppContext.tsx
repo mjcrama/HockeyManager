@@ -513,6 +513,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
 
+    case 'RESET_TO_DEFAULT':
+      return { ...defaultState, activeTab: state.activeTab, currentMatch: createDefaultMatch() };
+
     case 'LOAD_REMOTE_STATE': {
       const m = action.payload.currentMatch;
       return {

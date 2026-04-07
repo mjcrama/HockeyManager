@@ -72,14 +72,25 @@ const ALL_TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 const VIEWER_TABS: Tab[] = ['matchday', 'shootout'];
 
 function ShareBar() {
-  const { isViewer, isOnline, teamName, setTeamName, getCoachUrl, getViewerUrl } = useTeam();
-  const [open, setOpen]           = useState(false);
-  const [copied, setCopied]       = useState<'coach' | 'viewer' | null>(null);
-  const [nameInput, setNameInput] = useState(teamName);
+  const {
+    isViewer, isOnline, teamId, teamName, teamDeleted, allTeams,
+    setTeamName, switchTeam, createTeam, deleteTeam, getActiveDeviceCount,
+    getCoachUrl, getViewerUrl,
+  } = useTeam();
 
-  useScrollLock(open);
+  const [open, setOpen]                           = useState(false);
+  const [copied, setCopied]                       = useState<'coach' | 'viewer' | null>(null);
+  const [nameInput, setNameInput]                 = useState(teamName);
+  const [showTeams, setShowTeams]                 = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId]     = useState<string | null>(null);
+  const [activeDeviceCount, setActiveDeviceCount] = useState<number | null>(null);
+  const nameInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Keep input in sync if another coach changes the name
+  useScrollLock(open || teamDeleted);
+
+  // Force modal open when team is deleted
+  React.useEffect(() => { if (teamDeleted) setOpen(true); }, [teamDeleted]);
+  // Keep name input in sync
   React.useEffect(() => { setNameInput(teamName); }, [teamName]);
 
   function copy(type: 'coach' | 'viewer') {
@@ -98,6 +109,49 @@ function ShareBar() {
     if (nameInput.trim() !== teamName) setTeamName(nameInput.trim());
   }
 
+  function closeModal() {
+    if (teamDeleted) return; // cannot close while team is deleted
+    saveName();
+    setShowTeams(false);
+    setConfirmDeleteId(null);
+    setOpen(false);
+  }
+
+  function handleSwitchTeam(id: string) {
+    saveName();
+    setShowTeams(false);
+    setConfirmDeleteId(null);
+    switchTeam(id);
+  }
+
+  function handleCreateTeam() {
+    saveName();
+    setShowTeams(false);
+    const base = 'Nieuw team';
+    const existing = allTeams.map((t) => t.name);
+    let name = base;
+    let i = 2;
+    while (existing.includes(name)) name = `${base} ${i++}`;
+    createTeam(name);
+    setTimeout(() => nameInputRef.current?.select(), 50);
+  }
+
+  async function handleDeleteClick(t: { id: string; name: string }) {
+    setConfirmDeleteId(t.id);
+    setActiveDeviceCount(null);
+    const count = await getActiveDeviceCount(t.id);
+    setActiveDeviceCount(count);
+  }
+
+  async function handleConfirmDelete(id: string) {
+    await deleteTeam(id);
+    setConfirmDeleteId(null);
+    setActiveDeviceCount(null);
+    // If no teams left, create a new one
+    const remaining = allTeams.filter((t) => t.id !== id);
+    if (remaining.length === 0) handleCreateTeam();
+  }
+
   if (isViewer) {
     return (
       <div className="session-bar session-bar--viewer">
@@ -106,6 +160,8 @@ function ShareBar() {
       </div>
     );
   }
+
+  const modalOpen = open || teamDeleted;
 
   return (
     <div className="session-bar session-bar--coach">
@@ -118,72 +174,166 @@ function ShareBar() {
         {teamName || 'Mijn team'}
       </button>
 
-      {open && (
-        <div className="settings-modal-overlay" onClick={() => { saveName(); setOpen(false); }}>
+      {modalOpen && (
+        <div className="settings-modal-overlay" onClick={closeModal}>
           <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
             <div className="settings-modal__header">
               <span className="settings-modal__header-title">Team instellingen</span>
-              <button className="settings-modal__close-x" onClick={() => { saveName(); setOpen(false); }}>✕</button>
+              {!teamDeleted && (
+                <button className="settings-modal__close-x" onClick={closeModal}>✕</button>
+              )}
             </div>
             <div className="settings-modal__body">
-              {/* Team naam */}
-              <div className="share-menu__name" style={{ padding: 0 }}>
-                <label className="share-menu__name-label">Teamnaam</label>
-                <input
-                  className="share-menu__name-input"
-                  placeholder="bijv. HV Bleiswijk U12"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  onBlur={saveName}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { saveName(); e.currentTarget.blur(); } }}
-                  autoFocus
-                />
-              </div>
 
-              <div className="share-menu__divider" style={{ margin: '4px 0' }} />
-              <p className="share-menu__section-label" style={{ padding: 0 }}>Link delen</p>
+              {/* Deleted team warning */}
+              {teamDeleted && (
+                <div className="team-deleted-notice">
+                  <span className="team-deleted-notice__icon">⚠</span>
+                  <span>Dit team is verwijderd. Selecteer of maak een nieuw team aan.</span>
+                </div>
+              )}
 
-              {/* Coach link */}
-              <div className="share-menu__link-row" style={{ padding: 0, borderTop: 'none' }}>
-                <div className="share-menu__link-info">
-                  <svg className="share-menu__icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                  <strong>Coach link</strong>
+              {/* Team naam + switcher */}
+              {!teamDeleted && (
+                <div className="share-menu__name" style={{ padding: 0 }}>
+                  <label className="share-menu__name-label">Teamnaam</label>
+                  <div className="team-switcher">
+                    <input
+                      ref={nameInputRef}
+                      className="share-menu__name-input team-switcher__input"
+                      placeholder="bijv. HV Bleiswijk U12"
+                      value={nameInput}
+                      onChange={(e) => setNameInput(e.target.value)}
+                      onBlur={saveName}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { saveName(); e.currentTarget.blur(); } }}
+                      autoFocus
+                    />
+                    <button
+                      className={`team-switcher__chevron${showTeams ? ' team-switcher__chevron--open' : ''}`}
+                      onClick={() => setShowTeams((o) => !o)}
+                      title="Wissel van team"
+                    >
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </button>
+                    {showTeams && renderTeamDropdown()}
+                  </div>
                 </div>
-                <div className="share-menu__link-field">
-                  <input className="share-menu__url-input" readOnly value={getCoachUrl()} onFocus={(e) => e.currentTarget.select()} />
-                  <button className="share-menu__copy-btn" onClick={() => copy('coach')}>
-                    {copied === 'coach' ? '✓' : 'Kopieer'}
-                  </button>
-                </div>
-              </div>
+              )}
 
-              {/* Kijker link */}
-              <div className="share-menu__link-row" style={{ padding: 0, borderTop: 'none' }}>
-                <div className="share-menu__link-info">
-                  <svg className="share-menu__icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                  <strong>Kijker link</strong>
+              {/* Team list when deleted (always visible) */}
+              {teamDeleted && (
+                <div className="team-switcher__dropdown team-switcher__dropdown--inline">
+                  {renderTeamDropdown()}
                 </div>
-                <div className="share-menu__link-field">
-                  <input className="share-menu__url-input" readOnly value={getViewerUrl()} onFocus={(e) => e.currentTarget.select()} />
-                  <button className="share-menu__copy-btn" onClick={() => copy('viewer')}>
-                    {copied === 'viewer' ? '✓' : 'Kopieer'}
-                  </button>
-                </div>
-              </div>
+              )}
+
+              {!teamDeleted && (
+                <>
+                  <div className="share-menu__divider" style={{ margin: '4px 0' }} />
+                  <p className="share-menu__section-label" style={{ padding: 0 }}>Link delen</p>
+
+                  <div className="share-menu__link-row" style={{ padding: 0, borderTop: 'none' }}>
+                    <div className="share-menu__link-info">
+                      <svg className="share-menu__icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                      </svg>
+                      <strong>Coach link</strong>
+                    </div>
+                    <div className="share-menu__link-field">
+                      <input className="share-menu__url-input" readOnly value={getCoachUrl()} onFocus={(e) => e.currentTarget.select()} />
+                      <button className="share-menu__copy-btn" onClick={() => copy('coach')}>
+                        {copied === 'coach' ? '✓' : 'Kopieer'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="share-menu__link-row" style={{ padding: 0, borderTop: 'none' }}>
+                    <div className="share-menu__link-info">
+                      <svg className="share-menu__icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                      <strong>Kijker link</strong>
+                    </div>
+                    <div className="share-menu__link-field">
+                      <input className="share-menu__url-input" readOnly value={getViewerUrl()} onFocus={(e) => e.currentTarget.select()} />
+                      <button className="share-menu__copy-btn" onClick={() => copy('viewer')}>
+                        {copied === 'viewer' ? '✓' : 'Kopieer'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
             </div>
           </div>
         </div>
       )}
     </div>
   );
+
+  function renderTeamDropdown() {
+    return (
+      <div className={teamDeleted ? undefined : 'team-switcher__dropdown'}>
+        {allTeams.length === 0 && (
+          <span className="team-switcher__empty">Geen teams gevonden</span>
+        )}
+        {allTeams.map((t) => (
+          <div key={t.id} className="team-switcher__row">
+            {confirmDeleteId === t.id ? (
+              <div className="team-switcher__confirm">
+                <span className="team-switcher__confirm-label">
+                  {activeDeviceCount === null
+                    ? 'Controleren...'
+                    : activeDeviceCount > 0
+                      ? `⚠ ${activeDeviceCount} apparaat${activeDeviceCount > 1 ? 'en' : ''} actief`
+                      : `Verwijder "${t.name}"?`}
+                </span>
+                <button className="team-switcher__confirm-cancel" onClick={() => setConfirmDeleteId(null)}>Annuleer</button>
+                <button
+                  className="team-switcher__confirm-delete"
+                  disabled={activeDeviceCount === null}
+                  onClick={() => handleConfirmDelete(t.id)}
+                >
+                  Verwijder
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  className={`team-switcher__option${t.id === teamId ? ' team-switcher__option--active' : ''}`}
+                  onClick={() => handleSwitchTeam(t.id)}
+                >
+                  {t.name || 'Naamloos'}
+                  {t.id === teamId && <span className="team-switcher__check">✓</span>}
+                </button>
+                {t.id !== teamId && (
+                  <button
+                    className="team-switcher__delete"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(t); }}
+                    title={`Verwijder ${t.name}`}
+                  >
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        ))}
+        <div className="team-switcher__divider" />
+        <button className="team-switcher__option team-switcher__option--new" onClick={handleCreateTeam}>
+          + Nieuw team
+        </button>
+      </div>
+    );
+  }
 }
 
 function AppInner() {

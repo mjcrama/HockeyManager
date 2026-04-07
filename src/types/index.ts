@@ -131,4 +131,5 @@ export type AppAction =
   | { type: 'PAUSE_BREAK' }
   | { type: 'RESUME_BREAK' }
   | { type: 'START_NEXT_PERIOD' }
-  | { type: 'LOAD_REMOTE_STATE'; payload: Pick<AppState, 'players' | 'currentMatch'> };
+  | { type: 'LOAD_REMOTE_STATE'; payload: Pick<AppState, 'players' | 'currentMatch'> }
+  | { type: 'RESET_TO_DEFAULT' };

@@ -21,6 +21,17 @@ import { getPeriodLabel } from '../data/matchProfiles';
 import { WedstrijdIcon, ScoreIcon, WisselsIcon, OpstellingIcon } from './Icons';
 import type { Player } from '../types';
 
+/** Reconstruct the original lineup before any substitutions were made */
+function getInitialLineup(
+  substitutions: { positionId: string; playerOffId: string }[],
+  lineup: { positionId: string; playerId: string | null }[]
+) {
+  return [...substitutions].reverse().reduce(
+    (acc, s) => acc.map((e) => e.positionId === s.positionId ? { ...e, playerId: s.playerOffId } : e),
+    lineup
+  );
+}
+
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -239,11 +250,7 @@ export function MatchDay() {
   const substitutedOffIds = new Set(currentMatch.substitutions.map((s) => s.playerOffId));
   const substitutedOnIds  = new Set(currentMatch.substitutions.map((s) => s.playerOnId));
 
-  // Reconstruct the initial lineup by reversing all substitutions
-  const initialLineup = [...currentMatch.substitutions].reverse().reduce(
-    (lineup, s) => lineup.map((e) => e.positionId === s.positionId ? { ...e, playerId: s.playerOffId } : e),
-    currentMatch.lineup
-  );
+  const initialLineup = getInitialLineup(currentMatch.substitutions, currentMatch.lineup);
   const initialFieldIds = new Set(
     initialLineup.filter((e) => e.playerId !== null).map((e) => e.playerId as string)
   );
@@ -747,12 +754,7 @@ export function MatchDay() {
                   Wissels
                 </button>
                 <button className="timer-settings__reset-btn" onClick={() => {
-                  const original = [...currentMatch.substitutions].reverse().reduce(
-                    (lineup, sub) => lineup.map((e) =>
-                      e.positionId === sub.positionId ? { ...e, playerId: sub.playerOffId } : e
-                    ),
-                    currentMatch.lineup
-                  );
+                  const original = getInitialLineup(currentMatch.substitutions, currentMatch.lineup);
                   dispatch({ type: 'UPDATE_LINEUP', payload: original });
                   dispatch({ type: 'RESET_SUBSTITUTIONS' });
                   setSettingsOpen(false);

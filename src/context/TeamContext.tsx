@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { ref, set, onValue } from 'firebase/database';
+import { ref, set, get, remove, update, onValue } from 'firebase/database';
 import { db } from '../firebase';
+
+export interface TeamEntry { id: string; name: string; }
 
 interface TeamContextValue {
   teamId: string;
@@ -9,15 +11,21 @@ interface TeamContextValue {
   isViewer: boolean;
   isOnline: boolean;
   teamName: string;
+  teamDeleted: boolean;
+  allTeams: TeamEntry[];
   setTeamName: (name: string) => void;
+  switchTeam: (id: string) => void;
+  createTeam: (defaultName: string) => void;
+  getActiveDeviceCount: (id: string) => Promise<number>;
+  deleteTeam: (id: string) => Promise<void>;
+  /** Called by FirebaseSync when it detects the current team was deleted remotely */
+  _notifyTeamDeleted: () => void;
   getCoachUrl: () => string;
   getViewerUrl: () => string;
 }
 
 const TeamContext = createContext<TeamContextValue | null>(null);
 
-// Read URL params once at module load time, before any React rendering or replaceState calls.
-// This survives StrictMode double-mount because module code only runs once.
 const _params    = new URLSearchParams(window.location.search);
 const _teamId    = _params.get('team');
 const _isCoach   = _params.get('coach') === '1';
@@ -40,17 +48,14 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     return id;
   });
 
-  const [teamId] = useState(() => {
+  const [teamId, setTeamIdState] = useState<string>(() => {
     if (_teamId) {
-      if (_isCoach) {
-        // Joining as coach: persist so future visits without URL stay on this team
-        localStorage.setItem('hockey-teamId', _teamId);
-      }
+      if (_isCoach) localStorage.setItem('hockey-teamId', _teamId);
       const url = new URL(window.location.href);
       url.searchParams.delete('team');
       url.searchParams.delete('coach');
-      url.searchParams.delete('view');    // legacy
-      url.searchParams.delete('session'); // legacy
+      url.searchParams.delete('view');
+      url.searchParams.delete('session');
       window.history.replaceState({}, '', url.toString());
       return _teamId;
     }
@@ -63,14 +68,32 @@ export function TeamProvider({ children }: { children: ReactNode }) {
 
   const isViewer = _IS_VIEWER;
 
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline]     = useState(true);
+  const [allTeams, setAllTeams]     = useState<TeamEntry[]>([]);
+  const [teamDeleted, setTeamDeleted] = useState(false);
 
-  // Track Firebase connection state
   useEffect(() => {
     const connectedRef = ref(db, '.info/connected');
-    const unsubscribe = onValue(connectedRef, (snapshot) => {
-      setIsOnline(snapshot.val() === true);
-    });
+    const unsubscribe = onValue(connectedRef, (snap) => setIsOnline(snap.val() === true));
+    return () => unsubscribe();
+  }, []);
+
+  // Listen to all teams (for the switcher dropdown)
+  useEffect(() => {
+    const teamsRef = ref(db, 'teams');
+    const unsubscribe = onValue(
+      teamsRef,
+      (snapshot) => {
+        const data = snapshot.val() as Record<string, { name?: string; deleted?: boolean }> | null;
+        if (!data) return;
+        setAllTeams(
+          Object.entries(data)
+            .filter(([, v]) => !v?.deleted)
+            .map(([id, v]) => ({ id, name: v?.name ?? `Team ${id.slice(0, 4).toUpperCase()}` }))
+        );
+      },
+      () => { /* read error: likely a permissions issue */ }
+    );
     return () => unsubscribe();
   }, []);
 
@@ -78,15 +101,17 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     () => localStorage.getItem(`hockey-teamName-${teamId}`) ?? ''
   );
 
-  // Sync team name from Firebase (other coaches may have set it)
+  // Sync team name from Firebase
   useEffect(() => {
     const nameRef = ref(db, `teams/${teamId}/name`);
     const unsubscribe = onValue(nameRef, (snapshot) => {
-      const name: string | null = snapshot.val();
-      if (name) {
-        setTeamNameState(name);
-        localStorage.setItem(`hockey-teamName-${teamId}`, name);
+      const firebaseName: string | null = snapshot.val();
+      const resolved = firebaseName || localStorage.getItem(`hockey-teamName-${teamId}`) || `Team ${teamId.slice(0, 4).toUpperCase()}`;
+      if (firebaseName) {
+        setTeamNameState(firebaseName);
+        localStorage.setItem(`hockey-teamName-${teamId}`, firebaseName);
       }
+      set(ref(db, `teamIndex/${teamId}`), resolved);
     });
     return () => unsubscribe();
   }, [teamId]);
@@ -95,6 +120,42 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     setTeamNameState(name);
     localStorage.setItem(`hockey-teamName-${teamId}`, name);
     set(ref(db, `teams/${teamId}/name`), name);
+    set(ref(db, `teamIndex/${teamId}`), name);
+  }
+
+  function switchTeam(id: string) {
+    setTeamIdState(id);
+    localStorage.setItem('hockey-teamId', id);
+    setTeamNameState(localStorage.getItem(`hockey-teamName-${id}`) ?? '');
+    setTeamDeleted(false);
+  }
+
+  function createTeam(defaultName: string) {
+    const newId = generateId();
+    setTeamIdState(newId);
+    localStorage.setItem('hockey-teamId', newId);
+    setTeamNameState(defaultName);
+    localStorage.setItem(`hockey-teamName-${newId}`, defaultName);
+    set(ref(db, `teams/${newId}/name`), defaultName);
+    set(ref(db, `teamIndex/${newId}`), defaultName);
+    setTeamDeleted(false);
+  }
+
+  async function getActiveDeviceCount(id: string): Promise<number> {
+    const snap = await get(ref(db, `teams/${id}/presence`));
+    const presence = snap.val() as Record<string, unknown> | null;
+    if (!presence) return 0;
+    return Object.keys(presence).filter((d) => d !== deviceId).length;
+  }
+
+  async function deleteTeam(id: string): Promise<void> {
+    // Soft-delete: mark as deleted so other devices detect it
+    await update(ref(db, `teams/${id}`), { deleted: true });
+    await remove(ref(db, `teamIndex/${id}`));
+  }
+
+  function _notifyTeamDeleted() {
+    setTeamDeleted(true);
   }
 
   function getCoachUrl() {
@@ -111,7 +172,11 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <TeamContext.Provider value={{ teamId, deviceId, isViewer, isOnline, teamName, setTeamName, getCoachUrl, getViewerUrl }}>
+    <TeamContext.Provider value={{
+      teamId, deviceId, isViewer, isOnline, teamName, teamDeleted, allTeams,
+      setTeamName, switchTeam, createTeam, getActiveDeviceCount, deleteTeam,
+      _notifyTeamDeleted, getCoachUrl, getViewerUrl,
+    }}>
       {children}
     </TeamContext.Provider>
   );
