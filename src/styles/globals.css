@@ -163,6 +163,18 @@ body {
   flex-shrink: 0;
 }
 
+.session-bar__dot--btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  margin: -8px;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .session-bar__dot--live {
   background: #22c55e;
   box-shadow: 0 0 6px #22c55e;
@@ -222,8 +234,11 @@ body {
   background: var(--color-surface-hover, rgba(255,255,255,0.12));
 }
 
+.session-bar__kebab { display: none; }
+
 @media (max-width: 500px) {
-  .session-bar__team-name { display: none; }
+  .session-bar__team-name-text { display: none; }
+  .session-bar__kebab { display: block; }
 }
 
 .team-switcher {

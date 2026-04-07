@@ -165,13 +165,18 @@ function ShareBar() {
 
   return (
     <div className="session-bar session-bar--coach">
-      <span className={`session-bar__dot${isOnline ? ' session-bar__dot--live' : ' session-bar__dot--offline'}`} />
+      <button className="session-bar__dot--btn" onClick={() => setOpen(true)} title="Team instellingen">
+        <span className={`session-bar__dot${isOnline ? ' session-bar__dot--live' : ' session-bar__dot--offline'}`} />
+      </button>
       <button
         className="session-bar__team-name session-bar__team-name--btn"
         onClick={() => setOpen(true)}
         title="Team instellingen"
       >
-        {teamName || 'Mijn team'}
+        <span className="session-bar__team-name-text">{teamName || 'Mijn team'}</span>
+        <svg className="session-bar__kebab" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+        </svg>
       </button>
 
       {modalOpen && (
