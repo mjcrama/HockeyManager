@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useScrollLock } from '../hooks/useScrollLock';
 import {
   DndContext,
   DragEndEvent,
@@ -115,6 +116,7 @@ export function MatchDay() {
   const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
+  useScrollLock(settingsOpen);
   const [benchEntryMap, setBenchEntryMap] = useState<Record<string, number>>({});
 
   const settingsRef = useRef<HTMLDivElement>(null);

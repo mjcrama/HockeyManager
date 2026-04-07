@@ -189,11 +189,6 @@ body {
   font-weight: 600;
 }
 
-.session-bar__btn {
-  font-size: 0.75rem;
-  padding: 4px 10px;
-  min-height: 30px;
-}
 
 .session-bar--coach {
   position: relative;
@@ -207,6 +202,23 @@ body {
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.session-bar__team-name--btn {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.session-bar__team-name--btn:hover {
+  background: var(--color-surface-hover, rgba(255,255,255,0.08));
+}
+
+.session-bar__team-name--btn.btn--active {
+  background: var(--color-surface-hover, rgba(255,255,255,0.12));
 }
 
 @media (max-width: 500px) {

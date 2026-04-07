@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useScrollLock } from '../hooks/useScrollLock';
 import {
   DndContext,
   DragEndEvent,
@@ -87,6 +88,7 @@ export function FieldSetup() {
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  useScrollLock(settingsOpen);
   const settingsRef = useRef<HTMLDivElement>(null);
   const [periodInput, setPeriodInput] = useState(String(currentMatch.periods));
   const [durationInput, setDurationInput] = useState(String(Math.round(currentMatch.timerDuration / 60)));

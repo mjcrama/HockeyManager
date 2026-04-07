@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ref, set, onValue } from 'firebase/database';
+import { ref, update, onValue } from 'firebase/database';
 import { db } from '../firebase';
 import { useAppState, useAppDispatch } from '../context/AppContext';
 import { useTeam } from '../context/TeamContext';
@@ -48,7 +48,7 @@ export function FirebaseSync() {
     if (writeTimer.current) clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
       const teamRef = ref(db, `teams/${teamId}`);
-      set(teamRef, {
+      update(teamRef, {
         _writtenBy: deviceId,
         state: {
           players: state.players,
