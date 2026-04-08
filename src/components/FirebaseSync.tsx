@@ -11,10 +11,11 @@ export function FirebaseSync() {
   const state    = useAppState();
   const dispatch = useAppDispatch();
 
-  const writeTimer      = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastReceivedRef = useRef<string>('');
-  const prevTeamIdRef   = useRef<string>(teamId);
-  const isSwitchingRef  = useRef<boolean>(false);
+  const writeTimer               = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastReceivedRef          = useRef<string>('');
+  const prevTeamIdRef            = useRef<string>(teamId);
+  const isSwitchingRef           = useRef<boolean>(false);
+  const hasReceivedFirstUpdateRef = useRef<boolean>(false);
   // Keep a stable ref to allTeams for use inside callbacks without adding to deps
   const allTeamsRef     = useRef(allTeams);
   useEffect(() => { allTeamsRef.current = allTeams; }, [allTeams]);
@@ -54,6 +55,7 @@ export function FirebaseSync() {
     prevTeamIdRef.current = teamId;
     lastReceivedRef.current = '';
     isSwitchingRef.current = true;
+    hasReceivedFirstUpdateRef.current = false;
     dispatch({ type: 'RESET_TO_DEFAULT' });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
@@ -77,6 +79,7 @@ export function FirebaseSync() {
 
       if (!data?.state?.players || !data?.state?.currentMatch) {
         isSwitchingRef.current = false;
+        hasReceivedFirstUpdateRef.current = true;
         return;
       }
 
@@ -90,6 +93,7 @@ export function FirebaseSync() {
       const incoming = JSON.stringify({ p: data.state.players, m: data.state.currentMatch });
       lastReceivedRef.current = incoming;
       isSwitchingRef.current = false;
+      hasReceivedFirstUpdateRef.current = true;
 
       dispatch({
         type: 'LOAD_REMOTE_STATE',
@@ -102,6 +106,7 @@ export function FirebaseSync() {
   // Coaches: debounced write on every state change
   useEffect(() => {
     if (isViewer) return;
+    if (!hasReceivedFirstUpdateRef.current) return;
     if (isSwitchingRef.current) return;
 
     const current = JSON.stringify({ p: state.players, m: state.currentMatch });
