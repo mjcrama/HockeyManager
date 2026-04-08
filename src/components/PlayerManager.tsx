@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAppState, useAppDispatch } from '../context/AppContext';
+import { useScrollLock } from '../hooks/useScrollLock';
 import type { Player, Position } from '../types';
 
 const ALL_POSITIONS: Position[] = [
@@ -117,6 +118,15 @@ export function PlayerManager() {
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
+  const modalOpen = showForm || editingPlayer !== null;
+  useScrollLock(modalOpen);
+
+  function closeModal() {
+    setShowForm(false);
+    setEditingPlayer(null);
+    setDeleteConfirmId(null);
+  }
+
   function handleAddPlayer(data: PlayerFormData) {
     dispatch({
       type: 'ADD_PLAYER',
@@ -127,7 +137,7 @@ export function PlayerManager() {
         available: true,
       },
     });
-    setShowForm(false);
+    closeModal();
   }
 
   function handleEditPlayer(data: PlayerFormData) {
@@ -141,13 +151,12 @@ export function PlayerManager() {
         preferredPositions: data.preferredPositions,
       },
     });
-    setEditingPlayer(null);
+    closeModal();
   }
 
   function handleDelete(id: string) {
     dispatch({ type: 'DELETE_PLAYER', payload: id });
-    setDeleteConfirmId(null);
-    setEditingPlayer(null);
+    closeModal();
   }
 
   const sortedPlayers = [...players].sort((a, b) => a.jerseyNumber - b.jerseyNumber);
@@ -158,54 +167,55 @@ export function PlayerManager() {
         <h2 className="player-manager__title">Team Selectie</h2>
         <button
           className="btn btn--primary"
-          onClick={() => {
-            setShowForm(true);
-            setEditingPlayer(null);
-          }}
+          onClick={() => { setShowForm(true); setEditingPlayer(null); }}
         >
           + Speler toevoegen
         </button>
       </div>
 
-      {(showForm || editingPlayer) && (
-        <div className="player-manager__form-wrapper">
-          <h3 className="player-manager__form-title">
-            {editingPlayer ? 'Speler bewerken' : 'Nieuwe speler'}
-          </h3>
-          <PlayerForm
-            initial={
-              editingPlayer
-                ? {
-                    name: editingPlayer.name,
-                    jerseyNumber: String(editingPlayer.jerseyNumber),
-                    preferredPositions: editingPlayer.preferredPositions,
-                  }
-                : undefined
-            }
-            onSave={editingPlayer ? handleEditPlayer : handleAddPlayer}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingPlayer(null);
-            }}
-          />
-          {editingPlayer && (
-            <div className="player-manager__delete-section">
-              {deleteConfirmId === editingPlayer.id ? (
-                <>
-                  <button className="btn btn--danger btn--sm" onClick={() => handleDelete(editingPlayer.id)}>
-                    Verwijderen bevestigen
-                  </button>
-                  <button className="btn btn--ghost btn--sm" onClick={() => setDeleteConfirmId(null)}>
-                    Annuleren
-                  </button>
-                </>
-              ) : (
-                <button className="btn btn--ghost btn--sm" onClick={() => setDeleteConfirmId(editingPlayer.id)}>
-                  🗑️ Speler verwijderen
-                </button>
+      {modalOpen && (
+        <div className="settings-modal-overlay" onClick={closeModal}>
+          <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-modal__header">
+              <span className="settings-modal__header-title">
+                {editingPlayer ? 'Speler bewerken' : 'Nieuwe speler'}
+              </span>
+              <button className="settings-modal__close-x" onClick={closeModal}>✕</button>
+            </div>
+            <div className="settings-modal__body">
+              <PlayerForm
+                initial={
+                  editingPlayer
+                    ? {
+                        name: editingPlayer.name,
+                        jerseyNumber: String(editingPlayer.jerseyNumber),
+                        preferredPositions: editingPlayer.preferredPositions,
+                      }
+                    : undefined
+                }
+                onSave={editingPlayer ? handleEditPlayer : handleAddPlayer}
+                onCancel={closeModal}
+              />
+              {editingPlayer && (
+                <div className="player-manager__delete-section">
+                  {deleteConfirmId === editingPlayer.id ? (
+                    <>
+                      <button className="btn btn--danger btn--sm" onClick={() => handleDelete(editingPlayer.id)}>
+                        Verwijderen bevestigen
+                      </button>
+                      <button className="btn btn--ghost btn--sm" onClick={() => setDeleteConfirmId(null)}>
+                        Annuleren
+                      </button>
+                    </>
+                  ) : (
+                    <button className="btn btn--ghost btn--sm" onClick={() => setDeleteConfirmId(editingPlayer.id)}>
+                      🗑️ Speler verwijderen
+                    </button>
+                  )}
+                </div>
               )}
             </div>
-          )}
+          </div>
         </div>
       )}
 

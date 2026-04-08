@@ -2169,34 +2169,40 @@ body {
   gap: 16px;
 }
 
-.shootout-picker {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.shootout-picker__header {
+.shootout-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 
-.shootout-picker__label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: var(--color-text-dim);
-}
-
-.shootout-picker__summary {
+.shootout-summary__score {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-green-light);
+}
+
+.shootout-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.shootout-controls__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.shootout-random-btn {
+  min-height: 48px;
+  padding: 6px 12px;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 .shootout-picker__pct {
@@ -2204,17 +2210,11 @@ body {
   font-weight: 400;
 }
 
-.shootout-picker__body {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
 .shootout-picker__player {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 12px;
   padding: 12px 16px;
   background: rgba(21, 101, 192, 0.10);
@@ -2230,15 +2230,14 @@ body {
 }
 
 .shootout-picker__shot-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  flex-shrink: 0;
 }
 
 .shootout-picker__shot-actions .btn {
-  min-height: 44px;
-  min-width: 90px;
-  font-size: 15px;
+  min-height: 48px;
+  font-size: 16px;
 }
 
 .shootout-picker__jersey {
@@ -2281,6 +2280,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
   flex-wrap: wrap;
 }
 
@@ -2297,6 +2297,19 @@ body {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+}
+
+.shootout-picker__modal-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.shootout-picker__modal-footer .btn {
+  min-height: 48px;
+  font-size: 15px;
+  width: 100%;
 }
 
 .shootout-row__eligible {
@@ -2508,36 +2521,22 @@ body {
     align-self: center;
   }
 
-  .shootout-picker__body {
+  .shootout-controls {
     flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+    align-items: flex-start;
+    gap: 6px;
   }
 
-  .shootout-picker__body > .btn--primary {
-    min-height: 52px;
-    font-size: 16px;
+  .shootout-controls__row {
+    width: 100%;
   }
 
-  .shootout-picker__player {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+  .shootout-random-btn__label {
+    display: none;
   }
 
   .shootout-picker__player-info {
     flex-wrap: wrap;
-  }
-
-  .shootout-picker__shot-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
-  .shootout-picker__shot-actions .btn {
-    min-height: 48px;
-    font-size: 16px;
   }
 }
 
