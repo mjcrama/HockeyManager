@@ -490,6 +490,14 @@ export function MatchDay() {
     [currentMatch.lineup, currentMatch.timerSeconds, dispatch]
   );
 
+  const isPaused = (!currentMatch.timerRunning && !currentMatch.inBreak && !isMatchOver)
+    || (currentMatch.inBreak && !currentMatch.breakRunning);
+  const timerDisplayClass = [
+    'match-timer__display',
+    (isOvertime || isBreakOvertime) ? 'match-timer__display--overtime' : '',
+    isPaused ? 'match-timer__display--paused' : '',
+  ].filter(Boolean).join(' ');
+
   return (
     <DndContext
       sensors={sensors}
@@ -506,7 +514,7 @@ export function MatchDay() {
             onClick={() => !isViewer && setControlsOpen((o) => !o)}
           >
             <span className="match-timer__period-label">{periodLabel}</span>
-            <span className={`match-timer__display${(isOvertime || isBreakOvertime) ? ' match-timer__display--overtime' : ''}${(!currentMatch.timerRunning && !currentMatch.inBreak && !isMatchOver) || (currentMatch.inBreak && !currentMatch.breakRunning) ? ' match-timer__display--paused' : ''}`}>
+            <span className={timerDisplayClass}>
               {currentMatch.inBreak
                 ? (isBreakOvertime ? '+' : '') + formatTime(displayBreakSeconds)
                 : (isOvertime && currentMatch.timerCountDown ? '+' : '') + formatTime(displaySeconds)

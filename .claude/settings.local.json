@@ -3,7 +3,11 @@
     "allow": [
       "Bash(npx tsc:*)",
       "Bash(npm run:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(grep -h \"className=\" /Users/mjcrama/Development/claude_projects/hockey/src/components/*.tsx /Users/mjcrama/Development/claude_projects/hockey/src/*.tsx)",
+      "Bash(grep -E \"\\\\.match-day__drop-target|\\\\.match-day__drop-overlay|\\\\.match-day__field-container|\\\\.match-day__field-header|\\\\.matchday-bench-slot|\\\\.bench-chip-off-label|\\\\.reset-modal|\\\\.bench-chip-wrapper--drop-over\" /Users/mjcrama/Development/claude_projects/hockey/src/components/*.tsx /Users/mjcrama/Development/claude_projects/hockey/src/*.tsx)",
+      "Bash(grep \"control-group\\\\|control-btn\" /Users/mjcrama/Development/claude_projects/hockey/src/components/*.tsx /Users/mjcrama/Development/claude_projects/hockey/src/*.tsx)",
+      "Bash(grep:*)"
     ]
   }
 }
