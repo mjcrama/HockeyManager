@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import type { AppState, AppAction, Match, LineupEntry } from '../types';
 import { DEFAULT_FORMATIONS, getPositions } from '../data/formations';
+import { remapLineup } from '../data/remapLineup';
 import { MATCH_PROFILES } from '../data/matchProfiles';
 import { useTeam } from './TeamContext';
 
@@ -103,6 +104,12 @@ function loadState(): AppState {
 }
 
 
+function buildPreferences(state: AppState): Map<string, string[]> {
+  const prefs = new Map<string, string[]>();
+  for (const p of state.players) prefs.set(p.id, p.preferredPositions as string[]);
+  return prefs;
+}
+
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'ADD_PLAYER': {
@@ -163,8 +170,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
       const playerCount = playerCountMap[fieldSize];
       const formation = DEFAULT_FORMATIONS[playerCount];
-      const positions = getPositions(playerCount, formation);
-      const lineup: LineupEntry[] = positions.map((p) => ({ positionId: p.id, playerId: null }));
+      const oldPositions = getPositions(state.currentMatch.playerCount, state.currentMatch.formation);
+      const newPositions = getPositions(playerCount, formation);
+      const lineup = remapLineup(oldPositions, newPositions, state.currentMatch.lineup, buildPreferences(state));
       return {
         ...state,
         currentMatch: {
@@ -180,8 +188,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'SET_PLAYER_COUNT': {
       const playerCount = action.payload;
       const formation = DEFAULT_FORMATIONS[playerCount];
-      const positions = getPositions(playerCount, formation);
-      const lineup: LineupEntry[] = positions.map((p) => ({ positionId: p.id, playerId: null }));
+      const oldPositions = getPositions(state.currentMatch.playerCount, state.currentMatch.formation);
+      const newPositions = getPositions(playerCount, formation);
+      const lineup = remapLineup(oldPositions, newPositions, state.currentMatch.lineup, buildPreferences(state));
       return {
         ...state,
         currentMatch: {
@@ -195,8 +204,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'SET_FORMATION': {
       const formation = action.payload;
-      const positions = getPositions(state.currentMatch.playerCount, formation);
-      const lineup: LineupEntry[] = positions.map((p) => ({ positionId: p.id, playerId: null }));
+      const oldPositions = getPositions(state.currentMatch.playerCount, state.currentMatch.formation);
+      const newPositions = getPositions(state.currentMatch.playerCount, formation);
+      const lineup = remapLineup(oldPositions, newPositions, state.currentMatch.lineup, buildPreferences(state));
       return {
         ...state,
         currentMatch: {
