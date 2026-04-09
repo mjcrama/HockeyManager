@@ -130,19 +130,7 @@ export function MatchDay() {
   useScrollLock(settingsOpen);
   const [benchEntryMap, setBenchEntryMap] = useState<Record<string, number>>({});
 
-  const settingsRef = useRef<HTMLDivElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!settingsOpen) return;
-    function handleClick(e: MouseEvent) {
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
-        setSettingsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [settingsOpen]);
 
   // Local tick to trigger re-renders while running or break is running
   const [, tick] = useState(0);
@@ -707,39 +695,12 @@ export function MatchDay() {
 
       {settingsOpen && (
         <div className="settings-modal-overlay" onClick={() => setSettingsOpen(false)}>
-          <div className="settings-modal" ref={settingsRef} onClick={(e) => e.stopPropagation()}>
+          <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
             <div className="settings-modal__header">
-              <span className="settings-modal__header-title">Instellingen</span>
+              <span className="settings-modal__header-title">Resetten</span>
               <button className="settings-modal__close-x" onClick={() => setSettingsOpen(false)}>✕</button>
             </div>
             <div className="settings-modal__body">
-              <div className="settings-modal__field">
-                <label className="settings-modal__field-label">Richting</label>
-                <div className="timer-settings__row">
-                  <button
-                    className={`control-btn${!currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
-                    onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: false })}
-                  >Oplopen</button>
-                  <button
-                    className={`control-btn${currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
-                    onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: true })}
-                  >Aftellen</button>
-                </div>
-              </div>
-              <div className="settings-modal__field">
-                <label className="settings-modal__field-label">Geluid bij einde periode</label>
-                <div className="timer-settings__row">
-                  {(['off', 'soft', 'loud'] as const).map((v) => (
-                    <button
-                      key={v}
-                      className={`control-btn${currentMatch.timerBeep === v ? ' control-btn--active' : ''}`}
-                      onClick={() => dispatch({ type: 'SET_TIMER_BEEP', payload: v })}
-                    >{{ off: 'Uit', soft: 'Zacht', loud: 'Hard' }[v]}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="timer-settings__divider" />
-              <p className="settings-modal__title">Resetten</p>
               <div className="timer-settings__reset-grid">
                 <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_TIMER' }); setSettingsOpen(false); }}>
                   <span className="timer-settings__reset-icon"><WedstrijdIcon size={20} /></span>

@@ -513,6 +513,36 @@ export function FieldSetup() {
               </div>
             </div>
 
+            <div className="timer-settings__divider" />
+            <p className="settings-modal__title">Timer</p>
+
+            <div className="settings-modal__field">
+              <label className="settings-modal__field-label">Richting</label>
+              <div className="timer-settings__row">
+                <button
+                  className={`control-btn${!currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
+                  onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: false })}
+                >Oplopen</button>
+                <button
+                  className={`control-btn${currentMatch.timerCountDown ? ' control-btn--active' : ''}`}
+                  onClick={() => dispatch({ type: 'SET_TIMER_COUNTDOWN', payload: true })}
+                >Aftellen</button>
+              </div>
+            </div>
+
+            <div className="settings-modal__field">
+              <label className="settings-modal__field-label">Geluid bij einde periode</label>
+              <div className="timer-settings__row">
+                {(['off', 'soft', 'loud'] as const).map((v) => (
+                  <button
+                    key={v}
+                    className={`control-btn${currentMatch.timerBeep === v ? ' control-btn--active' : ''}`}
+                    onClick={() => dispatch({ type: 'SET_TIMER_BEEP', payload: v })}
+                  >{{ off: 'Uit', soft: 'Zacht', loud: 'Hard' }[v]}</button>
+                ))}
+              </div>
+            </div>
+
             </div>
           </div>
         </div>
