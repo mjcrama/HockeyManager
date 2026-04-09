@@ -89,6 +89,11 @@ function loadState(): AppState {
       // Remap to nearest KNHB count
       parsed.currentMatch.playerCount = pc === 7 ? 8 : 6;
     }
+    // Override activeTab from ?tab= URL param (used by PWA shortcuts)
+    const tabParam = new URLSearchParams(window.location.search).get('tab');
+    if (tabParam && ['roster', 'setup', 'matchday', 'shootout'].includes(tabParam)) {
+      parsed.activeTab = tabParam as AppState['activeTab'];
+    }
     return parsed;
   } catch {
     return defaultState;

@@ -14,8 +14,9 @@ export default defineConfig({
         runtimeCaching: [],
       },
       manifest: {
+        id: '/HockeyManager/',
         name: 'Hockey Team Manager',
-        short_name: 'Hockey',
+        short_name: 'Hockey Manager',
         description: 'Manage your hockey team lineup, substitutions and shootouts',
         start_url: '/HockeyManager/',
         scope: '/HockeyManager/',
@@ -24,6 +25,26 @@ export default defineConfig({
         background_color: '#080e1a',
         theme_color: '#1565c0',
         orientation: 'portrait',
+        shortcuts: [
+          {
+            name: 'Wedstrijd',
+            short_name: 'Wedstrijd',
+            url: '/HockeyManager/?tab=matchday',
+            icons: [{ src: '/HockeyManager/pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Selectie',
+            short_name: 'Selectie',
+            url: '/HockeyManager/?tab=roster',
+            icons: [{ src: '/HockeyManager/pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Opstelling',
+            short_name: 'Opstelling',
+            url: '/HockeyManager/?tab=setup',
+            icons: [{ src: '/HockeyManager/pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+        ],
         icons: [
           { src: '/HockeyManager/pwa-64x64.png',              sizes: '64x64',     type: 'image/png' },
           { src: '/HockeyManager/pwa-192x192.png',            sizes: '192x192',   type: 'image/png' },
