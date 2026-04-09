@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { ref, set, get, remove, update, onValue } from 'firebase/database';
+import { ref, set, get, update, onValue } from 'firebase/database';
 import { db } from '../firebase';
 
 export interface TeamEntry { id: string; name: string; }
@@ -111,7 +111,6 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         setTeamNameState(firebaseName);
         localStorage.setItem(`hockey-teamName-${teamId}`, firebaseName);
       }
-      set(ref(db, `teamIndex/${teamId}`), resolved);
     });
     return () => unsubscribe();
   }, [teamId]);
@@ -120,7 +119,6 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     setTeamNameState(name);
     localStorage.setItem(`hockey-teamName-${teamId}`, name);
     set(ref(db, `teams/${teamId}/name`), name);
-    set(ref(db, `teamIndex/${teamId}`), name);
   }
 
   function switchTeam(id: string) {
@@ -137,7 +135,6 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     setTeamNameState(defaultName);
     localStorage.setItem(`hockey-teamName-${newId}`, defaultName);
     set(ref(db, `teams/${newId}/name`), defaultName);
-    set(ref(db, `teamIndex/${newId}`), defaultName);
     setTeamDeleted(false);
   }
 
@@ -151,7 +148,6 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   async function deleteTeam(id: string): Promise<void> {
     // Soft-delete: mark as deleted so other devices detect it
     await update(ref(db, `teams/${id}`), { deleted: true });
-    await remove(ref(db, `teamIndex/${id}`));
   }
 
   function _notifyTeamDeleted() {
