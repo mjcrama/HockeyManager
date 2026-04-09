@@ -150,8 +150,9 @@ export function MatchDay() {
     ? currentMatch.breakSeconds + Math.floor((Date.now() - currentMatch.breakStartedAt) / 1000)
     : currentMatch.breakSeconds;
 
-  // Beep when period timer crosses duration
+  // Beep + vibrate when period timer crosses duration
   const prevSeconds = useRef(currentSeconds);
+  const prevBreakSeconds = useRef(currentBreakSeconds);
   useEffect(() => {
     const prev = prevSeconds.current;
     prevSeconds.current = currentSeconds;
@@ -161,6 +162,21 @@ export function MatchDay() {
       currentMatch.timerBeep !== 'off' &&
       prev < currentMatch.timerDuration &&
       currentSeconds >= currentMatch.timerDuration
+    ) {
+      playEndBeep(currentMatch.timerBeep);
+      if (currentMatch.timerVibrate && 'vibrate' in navigator) {
+        navigator.vibrate([300, 150, 300, 150, 300]);
+      }
+    }
+
+    const prevBreak = prevBreakSeconds.current;
+    prevBreakSeconds.current = currentBreakSeconds;
+    if (
+      currentMatch.breakRunning &&
+      currentMatch.breakDuration > 0 &&
+      currentMatch.timerBeep !== 'off' &&
+      prevBreak < currentMatch.breakDuration &&
+      currentBreakSeconds >= currentMatch.breakDuration
     ) {
       playEndBeep(currentMatch.timerBeep);
       if (currentMatch.timerVibrate && 'vibrate' in navigator) {
