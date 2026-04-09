@@ -80,6 +80,7 @@ export interface Match {
   timerDuration: number;   // seconds per period
   timerCountDown: boolean;
   timerBeep: 'off' | 'soft' | 'loud';
+  timerVibrate: boolean;
   homeScore: number;
   awayScore: number;
   matchProfile: MatchProfileKey;
@@ -124,6 +125,7 @@ export type AppAction =
   | { type: 'SET_TIMER_DURATION'; payload: number }
   | { type: 'SET_TIMER_COUNTDOWN'; payload: boolean }
   | { type: 'SET_TIMER_BEEP'; payload: 'off' | 'soft' | 'loud' }
+  | { type: 'SET_TIMER_VIBRATE'; payload: boolean }
   | { type: 'SET_MATCH_PROFILE'; payload: MatchProfileKey }
   | { type: 'SET_PERIODS'; payload: number }
   | { type: 'SET_BREAK_DURATION'; payload: number }

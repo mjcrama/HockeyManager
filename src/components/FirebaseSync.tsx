@@ -9,7 +9,7 @@ const DEBOUNCE_MS = 400;
 const LOCK_TIMEOUT_MS = 8000;
 
 export function FirebaseSync() {
-  const { teamId, deviceId, isViewer, teamName, allTeams, switchTeam, _notifyTeamDeleted } = useTeam();
+  const { teamId, deviceId, isViewer, allTeams, switchTeam, _notifyTeamDeleted } = useTeam();
   const state    = useAppState();
   const dispatch = useAppDispatch();
 
@@ -43,13 +43,12 @@ export function FirebaseSync() {
     }, LOCK_TIMEOUT_MS);
   }
 
-  function writeTeamState(id: string, name: string, players: unknown, currentMatch: unknown) {
+  function writeTeamState(id: string, players: unknown, currentMatch: unknown) {
     update(ref(db, `teams/${id}`), {
       _writtenBy: deviceId,
       state: { players, currentMatch },
       lastActive: Date.now(),
     });
-    set(ref(db, `teamIndex/${id}`), name || `Team ${id.slice(0, 4).toUpperCase()}`);
   }
 
   // Presence: register this device as active; Firebase auto-removes on disconnect
@@ -72,7 +71,7 @@ export function FirebaseSync() {
     if (writeTimer.current) {
       clearTimeout(writeTimer.current);
       writeTimer.current = null;
-      writeTeamState(prevTeamIdRef.current, teamName, state.players, state.currentMatch);
+      writeTeamState(prevTeamIdRef.current, state.players, state.currentMatch);
     }
 
     prevTeamIdRef.current = teamId;
@@ -165,7 +164,7 @@ export function FirebaseSync() {
       // Update pendingWriteRef to what we actually send (state may have changed during debounce)
       const toWrite = JSON.stringify({ p: state.players, m: state.currentMatch });
       setWriteLock(toWrite);
-      writeTeamState(teamId, teamName, state.players, state.currentMatch);
+      writeTeamState(teamId, state.players, state.currentMatch);
     }, DEBOUNCE_MS);
 
     return () => {

@@ -37,6 +37,7 @@ function createDefaultMatch(): Match {
     timerDuration: 35 * 60,
     timerCountDown: false,
     timerBeep: 'loud',
+    timerVibrate: true,
     homeScore: 0,
     awayScore: 0,
     matchProfile: 'p25',
@@ -67,6 +68,7 @@ function loadState(): AppState {
     if (parsed.currentMatch.timerDuration == null) parsed.currentMatch.timerDuration = 25 * 60;
     if (parsed.currentMatch.timerCountDown == null) parsed.currentMatch.timerCountDown = false;
     if (parsed.currentMatch.timerBeep == null) parsed.currentMatch.timerBeep = 'loud';
+    if (parsed.currentMatch.timerVibrate == null) parsed.currentMatch.timerVibrate = true;
     if (parsed.currentMatch.homeScore == null) parsed.currentMatch.homeScore = 0;
     if (parsed.currentMatch.awayScore == null) parsed.currentMatch.awayScore = 0;
     if (parsed.currentMatch.matchProfile == null || !['p15','p20','p25','p30','custom'].includes(parsed.currentMatch.matchProfile as string)) parsed.currentMatch.matchProfile = 'custom';
@@ -336,6 +338,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         currentMatch: { ...state.currentMatch, timerBeep: action.payload },
+      };
+    }
+
+    case 'SET_TIMER_VIBRATE': {
+      return {
+        ...state,
+        currentMatch: { ...state.currentMatch, timerVibrate: action.payload },
       };
     }
 

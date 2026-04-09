@@ -163,6 +163,9 @@ export function MatchDay() {
       currentSeconds >= currentMatch.timerDuration
     ) {
       playEndBeep(currentMatch.timerBeep);
+      if (currentMatch.timerVibrate && 'vibrate' in navigator) {
+        navigator.vibrate([300, 150, 300, 150, 300]);
+      }
     }
   });
 
@@ -509,9 +512,12 @@ export function MatchDay() {
         {/* Timer + Score */}
         <div className="match-timer" ref={drawerRef}>
           {/* Clickable timer bar */}
-          <button
+          <div
             className="match-timer__bar"
+            role="button"
+            tabIndex={0}
             onClick={() => !isViewer && setControlsOpen((o) => !o)}
+            onKeyDown={(e) => e.key === 'Enter' && !isViewer && setControlsOpen((o) => !o)}
           >
             <span className="match-timer__period-label">{periodLabel}</span>
             <span className={timerDisplayClass}>
@@ -526,7 +532,7 @@ export function MatchDay() {
                 onClick={(e) => { e.stopPropagation(); setControlsOpen(false); setSettingsOpen(true); }}
               >⚙</button>
             )}
-          </button>
+          </div>
 
           {/* Match progress bar */}
           {totalMatchDuration > 0 && (

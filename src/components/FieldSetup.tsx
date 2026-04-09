@@ -543,6 +543,20 @@ export function FieldSetup() {
               </div>
             </div>
 
+            <div className="settings-modal__field">
+              <label className="settings-modal__field-label">Trillen bij einde periode</label>
+              <div className="timer-settings__row">
+                <button
+                  className={`control-btn${!currentMatch.timerVibrate ? ' control-btn--active' : ''}`}
+                  onClick={() => dispatch({ type: 'SET_TIMER_VIBRATE', payload: false })}
+                >Uit</button>
+                <button
+                  className={`control-btn${currentMatch.timerVibrate ? ' control-btn--active' : ''}`}
+                  onClick={() => dispatch({ type: 'SET_TIMER_VIBRATE', payload: true })}
+                >Aan</button>
+              </div>
+            </div>
+
             </div>
           </div>
         </div>
