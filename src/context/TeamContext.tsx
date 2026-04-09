@@ -106,7 +106,6 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     const nameRef = ref(db, `teams/${teamId}/name`);
     const unsubscribe = onValue(nameRef, (snapshot) => {
       const firebaseName: string | null = snapshot.val();
-      const resolved = firebaseName || localStorage.getItem(`hockey-teamName-${teamId}`) || `Team ${teamId.slice(0, 4).toUpperCase()}`;
       if (firebaseName) {
         setTeamNameState(firebaseName);
         localStorage.setItem(`hockey-teamName-${teamId}`, firebaseName);
