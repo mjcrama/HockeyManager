@@ -156,32 +156,26 @@ export function MatchDay() {
   useEffect(() => {
     const prev = prevSeconds.current;
     prevSeconds.current = currentSeconds;
-    if (
-      currentMatch.timerRunning &&
+    const periodEnded = currentMatch.timerRunning &&
       currentMatch.timerDuration > 0 &&
-      currentMatch.timerBeep !== 'off' &&
       prev < currentMatch.timerDuration &&
-      currentSeconds >= currentMatch.timerDuration
-    ) {
-      playEndBeep(currentMatch.timerBeep);
-      if (currentMatch.timerVibrate && 'vibrate' in navigator) {
-        navigator.vibrate([300, 150, 300, 150, 300]);
-      }
+      currentSeconds >= currentMatch.timerDuration;
+
+    if (periodEnded) {
+      if (currentMatch.timerBeep !== 'off') playEndBeep(currentMatch.timerBeep);
+      if (currentMatch.timerVibrate && 'vibrate' in navigator) navigator.vibrate([300, 150, 300, 150, 300]);
     }
 
     const prevBreak = prevBreakSeconds.current;
     prevBreakSeconds.current = currentBreakSeconds;
-    if (
-      currentMatch.breakRunning &&
+    const breakEnded = currentMatch.breakRunning &&
       currentMatch.breakDuration > 0 &&
-      currentMatch.timerBeep !== 'off' &&
       prevBreak < currentMatch.breakDuration &&
-      currentBreakSeconds >= currentMatch.breakDuration
-    ) {
-      playEndBeep(currentMatch.timerBeep);
-      if (currentMatch.timerVibrate && 'vibrate' in navigator) {
-        navigator.vibrate([300, 150, 300, 150, 300]);
-      }
+      currentBreakSeconds >= currentMatch.breakDuration;
+
+    if (breakEnded) {
+      if (currentMatch.timerBeep !== 'off') playEndBeep(currentMatch.timerBeep);
+      if (currentMatch.timerVibrate && 'vibrate' in navigator) navigator.vibrate([300, 150, 300, 150, 300]);
     }
   });
 
