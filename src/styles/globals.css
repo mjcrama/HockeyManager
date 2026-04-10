@@ -1759,6 +1759,16 @@ body {
   display: flex;
 }
 
+/* Below desktop the canvas controls its own size — let the inner pass through */
+@media (max-width: 1024px) {
+  .match-day__field-inner {
+    aspect-ratio: auto !important;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+  }
+}
+
 .match-day__tactics-btn {
   position: absolute;
   top: 8px;
