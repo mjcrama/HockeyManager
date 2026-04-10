@@ -2,6 +2,13 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Maak een leesbare datum-tijd string: YYYYMMDD-HHMM
+const now = new Date();
+const buildDate = now.toISOString().split('T')[0].replace(/-/g, '');
+const buildTime = now.getHours().toString().padStart(2, '0') + 
+                  now.getMinutes().toString().padStart(2, '0');
+const buildId = `${buildDate}-${buildTime}`;
+
 export default defineConfig({
   base: '/HockeyManager/',
   plugins: [
@@ -9,9 +16,28 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
+        cacheId: `app-cache-${buildId}`, 
         globPatterns: ['**/*.{js,css,html,svg,ico,png,webp}'],
         navigateFallback: '/HockeyManager/index.html',
         runtimeCaching: [],
+        cleanupOutdatedCaches: true, // Verwijdert oude cache-bestanden automatisch
+        // Dit zorgt dat de nieuwe SW direct de controle overneemt
+        skipWaiting: true,
+        clientsClaim: true,
+        // Belangrijk: voorkom dat de SW zelf gecached wordt door de browser
+        importScripts: [], 
+        manifestTransforms: [
+          (manifestEntries) => {
+            const manifest = manifestEntries.map((entry) => {
+              if (entry.url === 'index.html') {
+                // Ook de revisie van de HTML krijgt deze stempel
+                entry.revision = buildId;
+              }
+              return entry;
+            });
+            return { manifest };
+          },
+        ],
       },
       manifest: {
         id: '/HockeyManager/',
