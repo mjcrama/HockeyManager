@@ -9,13 +9,25 @@ import { matchesPreferred } from '../data/formations';
 // Half 55×45.7 → portrait 550×457  (ratio 45.7/55 = 0.831 → 550×457)
 // Small 43×25  → portrait 550×945  (ratio 43/25 = 1.72 → 550×946)
 // Mini 23×23   → square   600×600
-const VIEWBOX: Record<FieldSize, { w: number; h: number }> = {
+export const VIEWBOX: Record<FieldSize, { w: number; h: number }> = {
   full:            { w: 550, h: 840 },
   'three-quarter': { w: 550, h: 700 },
   half:            { w: 550, h: 457 },
   small:           { w: 550, h: 946 },
   mini:            { w: 600, h: 600 },
 };
+
+/** Renders just the field SVG background (lines, goals, D-zones) for a given size. */
+export function FieldBackground({ fieldSize }: { fieldSize: FieldSize }) {
+  const { w, h } = VIEWBOX[fieldSize];
+  switch (fieldSize) {
+    case 'full':          return <FieldFull         w={w} h={h} />;
+    case 'three-quarter': return <FieldThreeQuarter w={w} h={h} />;
+    case 'half':          return <FieldHalf         w={w} h={h} />;
+    case 'small':         return <FieldSmall        w={w} h={h} />;
+    case 'mini':          return <FieldMini         w={w} h={h} />;
+  }
+}
 
 const LINE = 'rgba(255,255,255,0.75)';
 const LW   = 2;
