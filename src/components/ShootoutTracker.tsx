@@ -117,7 +117,7 @@ export function ShootoutTracker() {
             <span className="shootout-picker__pct"> ({Math.round((totalGoals / totalAttempts) * 100)}%)</span>
           </span>
           <button
-            className={`btn btn--sm shootout-reset${resetArmed ? ' shootout-reset--armed' : ''}`}
+            className={`btn shootout-reset${resetArmed ? ' shootout-reset--armed' : ''}`}
             onClick={handleReset}
             title={resetArmed ? 'Nogmaals klikken om te bevestigen' : 'Alle shootouts resetten'}
           >
@@ -178,17 +178,17 @@ export function ShootoutTracker() {
                   })()}
                 </div>
                 <div className="shootout-picker__shot-actions">
-                  <button className="btn btn--ghost" onClick={() => addAttempt(nextShooter.id, false)}>
+                  <button className="btn btn--ghost btn--lg" onClick={() => addAttempt(nextShooter.id, false)}>
                     Gemist
                   </button>
-                  <button className="btn btn--primary" onClick={() => addAttempt(nextShooter.id, true)}>
+                  <button className="btn btn--primary btn--lg" onClick={() => addAttempt(nextShooter.id, true)}>
                     Goal
                   </button>
                 </div>
               </div>
               <div className="shootout-picker__modal-footer">
                 <button
-                  className="btn btn--ghost"
+                  className="btn btn--ghost btn--lg btn--fullwidth"
                   onClick={handlePickRandom}
                   disabled={!availablePlayers.length}
                 >
@@ -259,7 +259,7 @@ export function ShootoutTracker() {
                   <div className="shootout-row__actions">
                     {s.attempts > 0 && (
                       <button
-                        className="btn btn--icon btn--sm"
+                        className="btn btn--icon btn--md"
                         onClick={() => undoLast(player.id)}
                         title="Laatste poging ongedaan maken"
                       >
@@ -267,14 +267,14 @@ export function ShootoutTracker() {
                       </button>
                     )}
                     <button
-                      className="btn btn--ghost btn--sm"
+                      className="btn btn--ghost btn--md"
                       onClick={() => addAttempt(player.id, false)}
                       disabled={!player.available}
                     >
                       Gemist
                     </button>
                     <button
-                      className="btn btn--primary btn--sm"
+                      className="btn btn--primary btn--md"
                       onClick={() => addAttempt(player.id, true)}
                       disabled={!player.available}
                     >

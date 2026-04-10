@@ -100,10 +100,10 @@ function PlayerForm({
       </div>
 
       <div className="player-form__actions">
-        <button type="submit" className="btn btn--primary">
+        <button type="submit" className="btn btn--primary btn--md">
           Opslaan
         </button>
-        <button type="button" className="btn btn--ghost" onClick={onCancel}>
+        <button type="button" className="btn btn--ghost btn--md" onClick={onCancel}>
           Annuleren
         </button>
       </div>
@@ -200,15 +200,15 @@ export function PlayerManager() {
                 <div className="player-manager__delete-section">
                   {deleteConfirmId === editingPlayer.id ? (
                     <>
-                      <button className="btn btn--danger btn--sm" onClick={() => handleDelete(editingPlayer.id)}>
+                      <button className="btn btn--danger" onClick={() => handleDelete(editingPlayer.id)}>
                         Verwijderen bevestigen
                       </button>
-                      <button className="btn btn--ghost btn--sm" onClick={() => setDeleteConfirmId(null)}>
+                      <button className="btn btn--ghost" onClick={() => setDeleteConfirmId(null)}>
                         Annuleren
                       </button>
                     </>
                   ) : (
-                    <button className="btn btn--ghost btn--sm" onClick={() => setDeleteConfirmId(editingPlayer.id)}>
+                    <button className="btn btn--ghost btn--md" onClick={() => setDeleteConfirmId(editingPlayer.id)}>
                       🗑️ Speler verwijderen
                     </button>
                   )}

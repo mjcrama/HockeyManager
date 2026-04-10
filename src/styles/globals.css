@@ -660,9 +660,20 @@ body {
   background: var(--color-surface-3);
 }
 
-.btn--sm {
-  padding: 5px 10px;
-  font-size: 12px;
+.btn--md {
+  min-height: 44px;
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.btn--lg {
+  min-height: 48px;
+  padding: 12px 18px;
+  font-size: 16px;
+}
+
+.btn--fullwidth {
+  width: 100%;
 }
 
 /* ===== PLAYER CHIP ===== */
@@ -1750,10 +1761,6 @@ body {
   pointer-events: none;
 }
 
-.sub-zone--highlighted {
-  /* visual handled inside SVG */
-}
-
 .match-day__sidebar {
   display: flex;
   flex-direction: column;
@@ -2035,11 +2042,6 @@ body {
   gap: 8px;
 }
 
-.shootout-picker__shot-actions .btn {
-  min-height: 48px;
-  font-size: 16px;
-}
-
 .shootout-picker__jersey {
   font-size: 12px;
   font-weight: 700;
@@ -2104,12 +2106,6 @@ body {
   flex-direction: column;
   gap: 8px;
   margin-top: 4px;
-}
-
-.shootout-picker__modal-footer .btn {
-  min-height: 48px;
-  font-size: 15px;
-  width: 100%;
 }
 
 .shootout-row__eligible {
@@ -2241,17 +2237,12 @@ body {
   flex-shrink: 0;
 }
 
-.shootout-row__actions .btn--sm {
-  padding: 10px 18px;
-  font-size: 14px;
-  min-height: 44px;
+.shootout-row__actions .btn {
   min-width: 80px;
 }
 
 .shootout-row__actions .btn--icon {
-  min-height: 44px;
   min-width: 44px;
-  font-size: 16px;
 }
 
 .shootout-picker__header-right {
