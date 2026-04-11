@@ -252,7 +252,6 @@ export function MatchDay() {
   );
 
   const substitutedOffIds = new Set(currentMatch.substitutions.map((s) => s.playerOffId));
-  const substitutedOnIds  = new Set(currentMatch.substitutions.map((s) => s.playerOnId));
 
   const initialLineup = getInitialLineup(currentMatch.substitutions, currentMatch.lineup);
   const initialFieldIds = new Set(
@@ -274,12 +273,6 @@ export function MatchDay() {
       currentBenchIds.add(s.playerOffId);
     }
   });
-
-  const substitutedOnPositionIds = new Set(
-    currentMatch.lineup
-      .filter((e) => e.playerId && substitutedOnIds.has(e.playerId))
-      .map((e) => e.positionId)
-  );
 
   const benchPlayers = players
     .filter((p) => p.available && !onFieldIds.has(p.id))
@@ -686,7 +679,7 @@ export function MatchDay() {
               lineup={currentMatch.lineup}
               players={players}
               fieldSize={currentMatch.fieldSize}
-              substitutedOnPositionIds={substitutedOnPositionIds}
+              subCounts={subCounts}
               preferredPositionLabels={preferredPositionLabels}
               className="match-day__canvas"
               selectedPositionId={selectedPlayer?.type === 'field' ? selectedPlayer.positionId : null}

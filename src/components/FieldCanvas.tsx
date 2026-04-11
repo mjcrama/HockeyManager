@@ -233,9 +233,9 @@ interface PosZoneProps {
   fieldW: number;
   fieldH: number;
   naturalH: number;
+  subCount?: number;
   disableDrag?: boolean;
   isSubstitutionTarget?: boolean;
-  isSubstitutedOn?: boolean;
   isPreferredPosition?: boolean;
   isSelected?: boolean;
   onClick?: () => void;
@@ -243,9 +243,9 @@ interface PosZoneProps {
 
 function PositionDropZone({
   config, entry, player, fieldW, fieldH, naturalH,
+  subCount = 0,
   disableDrag = false,
   isSubstitutionTarget = false,
-  isSubstitutedOn = false,
   isPreferredPosition = false,
   isSelected = false,
   onClick,
@@ -320,16 +320,17 @@ function PositionDropZone({
         <circle cx={cx} cy={cy} r={r + 5}
           fill="none" stroke="#93c5fd" strokeWidth={2} strokeDasharray="6 3" opacity={0.9} />
       )}
-      {/* Sub-on ring + badge */}
-      {isSubstitutedOn && player && (
+      {/* Substitution count badge, matching the bench pattern in a single badge */}
+      {subCount > 0 && player && (
         <>
-          {/* ⇅ badge top-right */}
-          <circle cx={cx + r * 0.72} cy={cy - r * 0.72} r={r * 0.38}
+          <circle cx={cx + r * 0.72} cy={cy - r * 0.72} r={r * 0.48}
             fill="#0d3a8c" stroke="#60a5fa" strokeWidth={1.5} />
           <text x={cx + r * 0.72} y={cy - r * 0.72}
             textAnchor="middle" dominantBaseline="middle"
-            fill="white" fontSize={r * 0.38} fontWeight="bold"
-            style={{ pointerEvents: 'none', userSelect: 'none' }}>⇅</text>
+            fill="white" fontSize={r * 0.3} fontWeight="bold"
+            style={{ pointerEvents: 'none', userSelect: 'none' }}>
+            {`${subCount}↕`}
+          </text>
         </>
       )}
 
@@ -370,9 +371,9 @@ interface FieldCanvasProps {
   lineup: LineupEntry[];
   players: Player[];
   fieldSize: FieldSize;
+  subCounts?: Map<string, number>;
   disableDrag?: boolean;
   substitutionTargetId?: string | null;
-  substitutedOnPositionIds?: Set<string>;
   preferredPositionLabels?: string[];
   className?: string;
   selectedPositionId?: string | null;
@@ -382,9 +383,9 @@ interface FieldCanvasProps {
 
 export function FieldCanvas({
   positions, lineup, players, fieldSize,
+  subCounts,
   disableDrag = false,
   substitutionTargetId = null,
-  substitutedOnPositionIds,
   preferredPositionLabels = [],
   className = '',
   selectedPositionId = null,
@@ -438,9 +439,9 @@ export function FieldCanvas({
               key={pos.id}
               config={pos} entry={entry} player={player}
               fieldW={FW} fieldH={FH} naturalH={baseFH}
+              subCount={entry.playerId ? (subCounts?.get(entry.playerId) ?? 0) : 0}
               disableDrag={disableDrag}
               isSubstitutionTarget={substitutionTargetId === pos.id}
-              isSubstitutedOn={substitutedOnPositionIds?.has(pos.id) ?? false}
               isPreferredPosition={matchesPreferred(pos.label, preferredPositionLabels)}
               isSelected={selectedPositionId === pos.id}
               onClick={onPositionClick ? () => onPositionClick(pos.id, entry.playerId) : undefined}
