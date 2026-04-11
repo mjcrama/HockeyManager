@@ -2,6 +2,11 @@ import React, { useCallback } from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import type { FieldPositionConfig, LineupEntry, Player, FieldSize } from '../types';
 import { matchesPreferred } from '../data/formations';
+import {
+  getFieldChipMetrics,
+  renderFieldPlayerLabel,
+  useResponsiveFieldLayout,
+} from './fieldRendering';
 
 // Viewbox per field size (proportional to real KNHB dimensions)
 // Full 91.4×55 → portrait 550×840  (ratio 0.655, real 0.602 — close enough)
@@ -17,15 +22,28 @@ export const VIEWBOX: Record<FieldSize, { w: number; h: number }> = {
   mini:            { w: 600, h: 600 },
 };
 
-/** Renders just the field SVG background (lines, goals, D-zones) for a given size. */
-export function FieldBackground({ fieldSize }: { fieldSize: FieldSize }) {
-  const { w, h } = VIEWBOX[fieldSize];
+/** Renders just the field SVG background (lines, goals, D-zones) for a given
+ * size. Optional `h`/`nh` overrides let callers use a stretched viewBox height
+ * while keeping feature sizing (circles, goals) based on the natural height. */
+export function FieldBackground({
+  fieldSize,
+  h: hOverride,
+  nh: nhOverride,
+}: {
+  fieldSize: FieldSize;
+  h?: number;
+  nh?: number;
+}) {
+  const natural = VIEWBOX[fieldSize];
+  const w = natural.w;
+  const h = hOverride ?? natural.h;
+  const nh = nhOverride ?? natural.h;
   switch (fieldSize) {
-    case 'full':          return <FieldFull         w={w} h={h} />;
-    case 'three-quarter': return <FieldThreeQuarter w={w} h={h} />;
-    case 'half':          return <FieldHalf         w={w} h={h} />;
-    case 'small':         return <FieldSmall        w={w} h={h} />;
-    case 'mini':          return <FieldMini         w={w} h={h} />;
+    case 'full':          return <FieldFull         w={w} h={h} nh={nh} />;
+    case 'three-quarter': return <FieldThreeQuarter w={w} h={h} nh={nh} />;
+    case 'half':          return <FieldHalf         w={w} h={h} nh={nh} />;
+    case 'small':         return <FieldSmall        w={w} h={h} nh={nh} />;
+    case 'mini':          return <FieldMini         w={w} h={h} nh={nh} />;
   }
 }
 
@@ -33,12 +51,14 @@ const LINE = 'rgba(255,255,255,0.75)';
 const LW   = 2;
 
 // ── Full field  91.4×55m — both goals, center circle ────────────────────────
-function FieldFull({ w, h }: { w: number; h: number }) {
-  const dR = h * 0.155;
+// `h` is the (possibly stretched) viewBox height; `nh` is the natural height
+// used for feature sizing so circles and goals don't distort when stretched.
+function FieldFull({ w, h, nh }: { w: number; h: number; nh: number }) {
+  const dR = nh * 0.155;
   const dW = w * 0.62;
-  const cR = h * 0.048;
+  const cR = nh * 0.048;
   const gW = w * 0.2;
-  const gH = h * 0.018;
+  const gH = nh * 0.018;
   return (
     <>
       <rect width={w} height={h} fill="#1a6b3a" rx={3} />
@@ -61,22 +81,22 @@ function FieldFull({ w, h }: { w: number; h: number }) {
         fill="rgba(255,255,255,0.2)" stroke={LINE} strokeWidth={LW*0.8} />
       <rect x={w/2-gW/2} y={h-gH} width={gW} height={gH}
         fill="rgba(255,255,255,0.2)" stroke={LINE} strokeWidth={LW*0.8} />
-      {/* 25-yard lines */}
-      <line x1={0} y1={h*0.25} x2={w} y2={h*0.25} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
-      <line x1={0} y1={h*0.75} x2={w} y2={h*0.75} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
+      {/* 25-yard lines — fixed distance from the goal lines */}
+      <line x1={0} y1={nh*0.25} x2={w} y2={nh*0.25} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
+      <line x1={0} y1={h - nh*0.25} x2={w} y2={h - nh*0.25} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
       {/* Penalty spots */}
-      <circle cx={w/2} cy={h*0.085} r={LW*1.8} fill={LINE} />
-      <circle cx={w/2} cy={h*0.915} r={LW*1.8} fill={LINE} />
+      <circle cx={w/2} cy={nh*0.085} r={LW*1.8} fill={LINE} />
+      <circle cx={w/2} cy={h - nh*0.085} r={LW*1.8} fill={LINE} />
     </>
   );
 }
 
 // ── 3/4 field  68×55m — O11 9v9 — GK goal bottom, open centre-line at top ───
-function FieldThreeQuarter({ w, h }: { w: number; h: number }) {
-  const dR = h * 0.18;
+function FieldThreeQuarter({ w, h, nh }: { w: number; h: number; nh: number }) {
+  const dR = nh * 0.18;
   const dW = w * 0.62;
   const gW = w * 0.2;
-  const gH = h * 0.02;
+  const gH = nh * 0.02;
   return (
     <>
       <rect width={w} height={h} fill="#1a6b3a" rx={3} />
@@ -90,11 +110,11 @@ function FieldThreeQuarter({ w, h }: { w: number; h: number }) {
         fill="rgba(255,255,255,0.05)" stroke={LINE} strokeWidth={LW} />
       <rect x={w/2-gW/2} y={h-gH} width={gW} height={gH}
         fill="rgba(255,255,255,0.2)" stroke={LINE} strokeWidth={LW*0.8} />
-      <circle cx={w/2} cy={h*0.92} r={LW*1.8} fill={LINE} />
-      {/* 25-yard line (at 23m from GK end = 23/68 ≈ 34% from bottom → y = h*0.66) */}
-      <line x1={0} y1={h*0.66} x2={w} y2={h*0.66} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
+      <circle cx={w/2} cy={h - nh*0.08} r={LW*1.8} fill={LINE} />
+      {/* 25-yard line — fixed distance from the GK end */}
+      <line x1={0} y1={h - nh*0.34} x2={w} y2={h - nh*0.34} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
       {/* Centre-line of full field at top */}
-      <text x={w/2} y={h*0.04} textAnchor="middle" fill="rgba(255,255,255,0.35)"
+      <text x={w/2} y={nh*0.04} textAnchor="middle" fill="rgba(255,255,255,0.35)"
         fontSize={LW*8} fontFamily="sans-serif">MIDDELLIJN</text>
     </>
   );
@@ -102,13 +122,13 @@ function FieldThreeQuarter({ w, h }: { w: number; h: number }) {
 
 // ── Half field  55×45.7m — O10 8v8 — portrait, GK bottom, FWD top ───────────
 // The full-field sidelines become the goal lines; played bottom to top.
-function FieldHalf({ w, h }: { w: number; h: number }) {
+function FieldHalf({ w, h, nh }: { w: number; h: number; nh: number }) {
   // D arc: radius 14.63m of 45.7m = 32% of height from each goal line
-  const dR    = h * 0.32;
+  const dR    = nh * 0.32;
   const dW    = w * 0.62;
   const gW    = w * 0.20;  // goal width (visual, same as full/3-4 field)
-  const gH    = h * 0.025; // goal depth visual
-  const pSpot = h * 0.14;  // penalty spot: 6.4m / 45.7m from goal line
+  const gH    = nh * 0.025; // goal depth visual
+  const pSpot = nh * 0.14;  // penalty spot: 6.4m / 45.7m from goal line
   return (
     <>
       <rect width={w} height={h} fill="#1a6b3a" rx={3} />
@@ -139,11 +159,11 @@ function FieldHalf({ w, h }: { w: number; h: number }) {
 }
 
 // ── Small field  43×25m — O9 6v6 — portrait, GK bottom, 10m scoring zone ────
-function FieldSmall({ w, h }: { w: number; h: number }) {
+function FieldSmall({ w, h, nh }: { w: number; h: number; nh: number }) {
   // 10m zone: 10/43 = 23.3% of field height from each end
-  const zone = h * (10 / 43);
+  const zone = nh * (10 / 43);
   const gW   = w * 0.36;   // goal width (~9m of 25m)
-  const gH   = h * 0.015;
+  const gH   = nh * 0.015;
   return (
     <>
       <rect width={w} height={h} fill="#1a6b3a" rx={3} />
@@ -173,12 +193,12 @@ function FieldSmall({ w, h }: { w: number; h: number }) {
 }
 
 // ── Mini field  23×23m — O8 3v3 — square, 3 goals per back line, no GK ──────
-function FieldMini({ w, h }: { w: number; h: number }) {
+function FieldMini({ w, h, nh }: { w: number; h: number; nh: number }) {
   // 3 goals per line: 3.5m | 2m | 5m | 2m | 5m | 2m | 3.5m = 23m
   // Goal centers at 4.5/23 = 19.6%, 11.5/23 = 50%, 18.5/23 = 80.4%
   const goalCenters = [w * 0.196, w * 0.5, w * 0.804];
   const goalW = w * (2 / 23); // 2m goal width
-  const goalD = h * 0.028;    // visual goal depth
+  const goalD = nh * 0.028;   // visual goal depth
   return (
     <>
       <rect width={w} height={h} fill="#1a6b3a" rx={3} />
@@ -205,35 +225,6 @@ function FieldMini({ w, h }: { w: number; h: number }) {
   );
 }
 
-// ── Multi-line player name renderer ──────────────────────────────────────────
-function renderPlayerLabel(name: string, cx: number, cy: number, fontSize: number) {
-  const parts = name.split(' ');
-  const fs    = fontSize * 0.84;
-  const lh    = fs * 1.2;
-  const style = { pointerEvents: 'none' as const, userSelect: 'none' as const };
-
-  if (parts.length === 1) {
-    const display = name.length > 9 ? name.substring(0, 8) + '…' : name;
-    return (
-      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
-        fill="white" fontSize={fs} style={style}>
-        {display}
-      </text>
-    );
-  }
-
-  const line1 = parts[0].length > 8 ? parts[0].substring(0, 7) + '…' : parts[0];
-  const rest  = parts.slice(1).join(' ');
-  const line2 = rest.length > 8 ? rest.substring(0, 7) + '…' : rest;
-
-  return (
-    <text textAnchor="middle" fill="white" fontSize={fs} style={style}>
-      <tspan x={cx} y={cy - lh * 0.5} dominantBaseline="middle">{line1}</tspan>
-      <tspan x={cx} y={cy + lh * 0.5} dominantBaseline="middle">{line2}</tspan>
-    </text>
-  );
-}
-
 // ── Position node — droppable + optionally draggable ─────────────────────────
 interface PosZoneProps {
   config: FieldPositionConfig;
@@ -241,6 +232,7 @@ interface PosZoneProps {
   player: Player | null;
   fieldW: number;
   fieldH: number;
+  naturalH: number;
   disableDrag?: boolean;
   isSubstitutionTarget?: boolean;
   isSubstitutedOn?: boolean;
@@ -250,7 +242,7 @@ interface PosZoneProps {
 }
 
 function PositionDropZone({
-  config, entry, player, fieldW, fieldH,
+  config, entry, player, fieldW, fieldH, naturalH,
   disableDrag = false,
   isSubstitutionTarget = false,
   isSubstitutedOn = false,
@@ -272,12 +264,12 @@ function PositionDropZone({
     [setDropRef, setDragRef]
   );
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
-  const r     = Math.min(fieldW, fieldH) * (isMobile ? 0.082 : 0.060);
+  // Size chips based on natural (non-stretched) field dimensions so they stay
+  // consistent regardless of vertical stretching on narrow screens.
+  const { chipRadius: r, fontSize } = getFieldChipMetrics(fieldW, naturalH);
   const cx    = (config.x / 100) * fieldW;
   const cy    = (config.y / 100) * fieldH;
   const foPx  = r * 2 + 12;
-  const fontSize = Math.min(fieldW, fieldH) * (isMobile ? 0.032 : 0.026);
 
   const fill = isDragging
     ? 'rgba(255,255,255,0.06)'
@@ -342,7 +334,7 @@ function PositionDropZone({
       )}
 
       {player ? (
-        renderPlayerLabel(player.name, cx, cy, fontSize)
+        renderFieldPlayerLabel({ name: player.name, cx, cy, fontSize })
       ) : (
         <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
           fill={isPreferredPosition ? '#93c5fd' : 'rgba(255,255,255,0.6)'}
@@ -385,6 +377,7 @@ interface FieldCanvasProps {
   className?: string;
   selectedPositionId?: string | null;
   onPositionClick?: (positionId: string, playerId: string | null) => void;
+  onTacticsClick?: () => void;
 }
 
 export function FieldCanvas({
@@ -396,8 +389,12 @@ export function FieldCanvas({
   className = '',
   selectedPositionId = null,
   onPositionClick,
+  onTacticsClick,
 }: FieldCanvasProps) {
-  const { w: FW, h: FH } = VIEWBOX[fieldSize];
+  const { w: baseFW, h: baseFH } = VIEWBOX[fieldSize];
+  const FW = baseFW;
+  const layout = useResponsiveFieldLayout(baseFW, baseFH);
+  const FH = layout.FH;
 
   const playerMap = React.useMemo(() => {
     const map = new Map<string, Player>();
@@ -405,19 +402,25 @@ export function FieldCanvas({
     return map;
   }, [players]);
 
-  function renderField() {
-    switch (fieldSize) {
-      case 'full':           return <FieldFull          w={FW} h={FH} />;
-      case 'three-quarter':  return <FieldThreeQuarter  w={FW} h={FH} />;
-      case 'half':           return <FieldHalf          w={FW} h={FH} />;
-      case 'small':          return <FieldSmall         w={FW} h={FH} />;
-      case 'mini':           return <FieldMini          w={FW} h={FH} />;
-    }
-  }
-
   return (
-    <div className={`field-canvas ${className}`}>
-      <svg viewBox={`0 0 ${FW} ${FH}`} preserveAspectRatio="xMidYMin meet"
+    <div ref={layout.containerRef} className={`field-canvas ${className}`}>
+      {onTacticsClick && (
+        <button
+          type="button"
+          className="match-day__tactics-btn"
+          title="Tactiekbord"
+          onClick={onTacticsClick}
+          style={{ top: layout.offsetY + 8, right: layout.offsetX + 8 }}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="14" rx="2" />
+            <path d="M8 10 L14 14" />
+            <path d="M11 13 L14 14 L13 11" />
+          </svg>
+        </button>
+      )}
+      <svg viewBox={`0 0 ${FW} ${FH}`} preserveAspectRatio="xMidYMid meet"
         className="field-canvas__svg" style={{ width: '100%' }}>
         <defs>
           <filter id="glow-selected" x="-40%" y="-40%" width="180%" height="180%">
@@ -425,7 +428,7 @@ export function FieldCanvas({
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
         </defs>
-        {renderField()}
+        <FieldBackground fieldSize={fieldSize} h={FH} nh={baseFH} />
         {positions.map((pos) => {
           const entry = lineup.find((e) => e.positionId === pos.id);
           if (!entry) return null;
@@ -434,7 +437,7 @@ export function FieldCanvas({
             <PositionDropZone
               key={pos.id}
               config={pos} entry={entry} player={player}
-              fieldW={FW} fieldH={FH}
+              fieldW={FW} fieldH={FH} naturalH={baseFH}
               disableDrag={disableDrag}
               isSubstitutionTarget={substitutionTargetId === pos.id}
               isSubstitutedOn={substitutedOnPositionIds?.has(pos.id) ?? false}

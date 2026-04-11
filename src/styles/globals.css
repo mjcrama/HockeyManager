@@ -1211,16 +1211,18 @@ body {
 
 .field-setup__main {
   display: grid;
-  grid-template-columns: 1fr 220px;
+  grid-template-columns: minmax(0, 1fr) 220px;
   gap: 8px;
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
 .field-setup__field {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
 }
 
 .field-setup__sidebar {
@@ -1242,6 +1244,7 @@ body {
   min-height: 0;
   display: flex;
   align-items: stretch;
+  position: relative;
 }
 
 .field-canvas__svg {
@@ -1737,10 +1740,11 @@ body {
 
 .match-day__main {
   display: grid;
-  grid-template-columns: 1fr 260px;
+  grid-template-columns: minmax(0, 1fr) 260px;
   gap: 16px;
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
 .match-day__field-wrapper {
@@ -1750,29 +1754,20 @@ body {
   justify-content: flex-start;
   gap: 8px;
   min-height: 0;
+  min-width: 0;
 }
 
-.match-day__field-inner {
-  position: relative;
-  height: 100%;
-  max-width: 100%;
-  display: flex;
-}
-
-/* Below desktop the canvas controls its own size — let the inner pass through */
-@media (max-width: 1024px) {
-  .match-day__field-inner {
-    aspect-ratio: auto !important;
+/* Canvas fills available space via flex on mobile */
+@media (max-width: 768px) {
+  .match-day__field-wrapper {
+    flex: 1;
+    min-height: 0;
     width: 100%;
-    height: auto;
-    max-width: 100%;
   }
 }
 
 .match-day__tactics-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
   z-index: 5;
   width: 40px;
   height: 40px;
@@ -2546,9 +2541,9 @@ body {
   font-size: 22px;
 }
 
-/* ===== RESPONSIVE — tablet (≤1024px) ===== */
-@media (max-width: 1024px) {
-  /* Bench fixed at bottom of screen on tablets too */
+/* ===== RESPONSIVE — mobile (≤768px): bench fixed at bottom ===== */
+@media (max-width: 768px) {
+  /* Bench fixed at bottom of screen on mobile */
   .field-setup__sidebar {
     position: fixed;
     bottom: 0;
@@ -2610,11 +2605,20 @@ body {
     letter-spacing: 0.4px;
   }
 
-  /* Field canvas height for tablets */
+  /* Reserve room at the bottom for the fixed bench. Match day needs a little
+     less than the full max-height to avoid extra empty space on shorter screens. */
+  .field-setup {
+    padding-bottom: 148px;
+  }
+
+  .match-day {
+    padding-bottom: 132px;
+  }
+
+  /* Canvas flex-fills remaining space — no fragile calc heights */
   .field-canvas {
-    flex: none;
+    flex: 1;
     width: 100%;
-    height: calc(100dvh - 224px);
     min-height: 260px;
   }
 
@@ -2624,7 +2628,7 @@ body {
   }
 
   .match-day__canvas {
-    height: calc(100dvh - 310px);
+    flex: 1;
     min-height: 260px;
   }
 
@@ -2670,15 +2674,20 @@ body {
   }
 }
 
-/* ===== RESPONSIVE — tablet (≤900px) ===== */
-@media (max-width: 900px) {
+/* ===== RESPONSIVE — mobile (≤768px): single-column flex layout ===== */
+@media (max-width: 768px) {
+  /* Use flex column so canvas children can flex-fill remaining space.
+     Grid auto-rows don't let flex:1 children pick up residual height. */
   .field-setup__main,
   .match-day__main {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
   }
 
-  /* Sidebar is already position:fixed full-width from ≤1024px — keep column layout */
+  /* Sidebar is already position:fixed full-width from ≤768px — keep column layout */
   .field-setup__sidebar {
     flex-direction: column;
     overflow-y: auto;
@@ -2732,10 +2741,13 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0;
+    flex: 1;
+    min-height: 0;
   }
 
   .field-setup__field {
-    flex: none;
+    flex: 1;
+    min-height: 0;
   }
 
   /* Bench fixed at bottom of screen */
@@ -2787,12 +2799,10 @@ body {
     letter-spacing: 0.4px;
   }
 
-  /* Field canvas: fixed height so it fills screen above the bench */
+  /* Field canvas flex-fills remaining space above the fixed bench */
   .field-canvas {
-    flex: none;
+    flex: 1;
     width: 100%;
-    /* 50px header + 8px padding + 44px mobile-bar + 4px gap + 148px bench = 254px */
-    height: calc(100dvh - 254px);
     min-height: 260px;
   }
 
@@ -2850,21 +2860,23 @@ body {
   }
 
   .match-day__main {
-    flex: none;
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 0;
+    min-height: 0;
   }
 
   .match-day__field-wrapper {
-    flex: none;
+    flex: 1;
+    min-height: 0;
   }
 
-  /* Match day canvas fills space above bench */
+  /* Match day canvas flex-fills — padding-bottom on .match-day reserves bench space */
   .match-day__canvas {
-    /* 50px header + 8px padding + ~60px timer + 4px gap + 148px bench = 270px */
-    height: calc(100dvh - 270px);
+    flex: 1;
     min-height: 260px;
+    height: auto;
   }
 
   /* Match day bench also fixed at bottom */

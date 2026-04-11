@@ -1,6 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { FieldPositionConfig, FieldSize, LineupEntry, Player } from '../types';
 import { FieldBackground, VIEWBOX } from './FieldCanvas';
+import {
+  getFieldChipMetrics,
+  renderFieldPlayerLabel,
+  useResponsiveFieldLayout,
+} from './fieldRendering';
 
 interface Arrow {
   id: string;
@@ -34,23 +39,16 @@ function uid(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-/** Clip a label to fit nicely in a chip. */
-function shortLabel(name: string): { line1: string; line2?: string } {
-  const parts = name.split(' ');
-  if (parts.length === 1) {
-    return { line1: name.length > 9 ? name.slice(0, 8) + '…' : name };
-  }
-  const line1 = parts[0].length > 8 ? parts[0].slice(0, 7) + '…' : parts[0];
-  const rest  = parts.slice(1).join(' ');
-  const line2 = rest.length > 8 ? rest.slice(0, 7) + '…' : rest;
-  return { line1, line2 };
-}
-
 export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }: TacticsBoardProps) {
-  const { w: FW, h: FH } = VIEWBOX[fieldSize];
+  const baseFW = VIEWBOX[fieldSize].w;
+  const baseFH = VIEWBOX[fieldSize].h;
+  const FW = baseFW;
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const [FH, setFH] = useState(baseFH);
 
-  // Snapshot chips from current lineup (only positions with a player)
+  // Snapshot chips from current lineup (only positions with a player).
+  // Computed from the current FH so clearAll() always snaps back to the
+  // correct positions for the current stretched viewBox.
   const initialChips = useMemo<Chip[]>(() => {
     const playerMap = new Map(players.map((p) => [p.id, p]));
     const chips: Chip[] = [];
@@ -74,8 +72,20 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
   const [selectedArrowId, setSelectedArrowId] = useState<string | null>(null);
   const [interaction, setInteraction] = useState<Interaction>({ kind: 'none' });
 
-  const chipR = Math.min(FW, FH) * 0.072;
-  const fontSize = Math.min(FW, FH) * 0.032;
+  const handleFieldHeightChange = useCallback((prevFH: number, nextFH: number) => {
+    const scaleY = nextFH / prevFH;
+    setFH(nextFH);
+    setChips((list) => list.map((c) => ({ ...c, y: c.y * scaleY })));
+    setArrows((list) => list.map((a) => ({ ...a, y1: a.y1 * scaleY, y2: a.y2 * scaleY })));
+  }, []);
+
+  const layout = useResponsiveFieldLayout(baseFW, baseFH, {
+    onHeightChange: handleFieldHeightChange,
+  });
+
+  // Match chip sizing to the setup/match fields and keep it based on the
+  // natural field so chips don't balloon when the viewBox stretches vertically.
+  const { chipRadius: chipR, fontSize } = getFieldChipMetrics(FW, baseFH);
 
   function clientToSvg(clientX: number, clientY: number): { x: number; y: number } | null {
     const svg = svgRef.current;
@@ -190,10 +200,10 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
           </div>
         </div>
 
-        <div className="tactics-board__field">
+        <div className="tactics-board__field" ref={layout.containerRef}>
           <svg
             ref={svgRef}
-            viewBox={`0 0 ${FW} ${FH}`}
+            viewBox={`0 0 ${FW} ${layout.FH}`}
             preserveAspectRatio="xMidYMid meet"
             className="tactics-board__svg"
             onPointerMove={handlePointerMove}
@@ -214,14 +224,14 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
               </marker>
             </defs>
 
-            <FieldBackground fieldSize={fieldSize} />
+            <FieldBackground fieldSize={fieldSize} h={layout.FH} nh={baseFH} />
 
             {/* Transparent background rect to catch pointer events for drawing */}
             <rect
               x={0}
               y={0}
               width={FW}
-              height={FH}
+              height={layout.FH}
               fill="transparent"
               onPointerDown={handlePointerDownOnField}
               style={{ touchAction: 'none' }}
@@ -276,7 +286,6 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
 
             {/* Player chips */}
             {chips.map((chip) => {
-              const { line1, line2 } = shortLabel(chip.name);
               return (
                 <g
                   key={chip.playerId}
@@ -291,31 +300,13 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
                     stroke="#93c5fd"
                     strokeWidth={2.5}
                   />
-                  {line2 ? (
-                    <text
-                      textAnchor="middle"
-                      fill="white"
-                      fontSize={fontSize * 0.84}
-                      fontWeight={600}
-                      style={{ pointerEvents: 'none', userSelect: 'none' }}
-                    >
-                      <tspan x={chip.x} y={chip.y - fontSize * 0.42} dominantBaseline="middle">{line1}</tspan>
-                      <tspan x={chip.x} y={chip.y + fontSize * 0.42} dominantBaseline="middle">{line2}</tspan>
-                    </text>
-                  ) : (
-                    <text
-                      x={chip.x}
-                      y={chip.y}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fill="white"
-                      fontSize={fontSize * 0.84}
-                      fontWeight={600}
-                      style={{ pointerEvents: 'none', userSelect: 'none' }}
-                    >
-                      {line1}
-                    </text>
-                  )}
+                  {renderFieldPlayerLabel({
+                    name: chip.name,
+                    cx: chip.x,
+                    cy: chip.y,
+                    fontSize,
+                    fontWeight: 600,
+                  })}
                 </g>
               );
             })}

@@ -14,7 +14,7 @@ import {
 } from '@dnd-kit/core';
 import { useAppState, useAppDispatch } from '../context/AppContext';
 import { useTeam } from '../context/TeamContext';
-import { FieldCanvas, VIEWBOX } from './FieldCanvas';
+import { FieldCanvas } from './FieldCanvas';
 import { PlayerChip } from './PlayerChip';
 import { TacticsBoard } from './TacticsBoard';
 import { getPositions } from '../data/formations';
@@ -681,35 +681,18 @@ export function MatchDay() {
         {/* Main content */}
         <div className="match-day__main">
           <div className="match-day__field-wrapper">
-            <div
-              className="match-day__field-inner"
-              style={{ aspectRatio: `${VIEWBOX[currentMatch.fieldSize].w} / ${VIEWBOX[currentMatch.fieldSize].h}` }}
-            >
-              {!isViewer && (
-                <button
-                  className="match-day__tactics-btn"
-                  title="Tactiekbord"
-                  onClick={() => setTacticsOpen(true)}
-                >
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="14" rx="2" />
-                    <path d="M8 10 L14 14" />
-                    <path d="M11 13 L14 14 L13 11" />
-                  </svg>
-                </button>
-              )}
-              <FieldCanvas
-                positions={positions}
-                lineup={currentMatch.lineup}
-                players={players}
-                fieldSize={currentMatch.fieldSize}
-                substitutedOnPositionIds={substitutedOnPositionIds}
-                preferredPositionLabels={preferredPositionLabels}
-                className="match-day__canvas"
-                selectedPositionId={selectedPlayer?.type === 'field' ? selectedPlayer.positionId : null}
-                onPositionClick={!isViewer ? handlePositionClick : undefined}
-              />
-            </div>
+            <FieldCanvas
+              positions={positions}
+              lineup={currentMatch.lineup}
+              players={players}
+              fieldSize={currentMatch.fieldSize}
+              substitutedOnPositionIds={substitutedOnPositionIds}
+              preferredPositionLabels={preferredPositionLabels}
+              className="match-day__canvas"
+              selectedPositionId={selectedPlayer?.type === 'field' ? selectedPlayer.positionId : null}
+              onPositionClick={!isViewer ? handlePositionClick : undefined}
+              onTacticsClick={!isViewer ? () => setTacticsOpen(true) : undefined}
+            />
           </div>
 
           <div className="match-day__sidebar">
