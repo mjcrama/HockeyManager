@@ -9,38 +9,30 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-  useDroppable,
   pointerWithin,
 } from '@dnd-kit/core';
 import { useAppState, useAppDispatch } from '../context/AppContext';
+import { BenchEmptySlot, BenchPlayerDropTarget } from './BenchDropTarget';
 import { FieldCanvas } from './FieldCanvas';
 import { PlayerChip } from './PlayerChip';
+import {
+  getDragEndIntent,
+  getBenchClickIntent,
+  getPositionClickIntent,
+  type DragData,
+  type DropData,
+  type SelectedPlayer,
+} from './selectionIntents';
 import { FORMATIONS_BY_COUNT, getPositions, matchesPreferred } from '../data/formations';
 import { MATCH_PROFILES } from '../data/matchProfiles';
 import type { FieldSize, PlayerCount, Player, MatchProfileKey } from '../types';
 
-function SetupBenchEmptySlot() {
-  const { setNodeRef, isOver } = useDroppable({
-    id: 'bench-empty',
-    data: { isEmptySlot: true },
-  });
-  return (
-    <div
-      ref={setNodeRef}
-      className={['bench-empty-slot', isOver ? 'bench-empty-slot--over' : ''].join(' ').trim()}
-    />
-  );
-}
-
 function SetupBenchChip({ player, isSelected, onClick }: { player: Player; isSelected?: boolean; onClick?: () => void }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `bench-player-${player.id}`,
-    data: { isBenchPlayer: true, benchPlayerId: player.id },
-  });
   return (
-    <div
-      ref={setNodeRef}
-      className={['bench-chip-wrapper', isOver ? 'bench-chip-wrapper--drop-over' : '', isSelected ? 'bench-chip-wrapper--selected' : ''].filter(Boolean).join(' ')}
+    <BenchPlayerDropTarget
+      dropId={`bench-player-${player.id}`}
+      benchPlayerId={player.id}
+      isSelected={isSelected}
       onClick={onClick}
     >
       <PlayerChip
@@ -49,7 +41,7 @@ function SetupBenchChip({ player, isSelected, onClick }: { player: Player; isSel
         size="medium"
         isOnField={false}
       />
-    </div>
+    </BenchPlayerDropTarget>
   );
 }
 
@@ -76,11 +68,6 @@ function profileChipLabel(key: MatchProfileKey): string {
   const p = MATCH_PROFILES[key];
   return `${p.periods}×${p.periodMinutes} +${p.breakMinutes}`;
 }
-
-type SelectedPlayer =
-  | { type: 'field'; positionId: string; playerId: string | null }
-  | { type: 'bench'; playerId: string }
-  | null;
 
 export function FieldSetup() {
   const { players, currentMatch } = useAppState();
@@ -122,46 +109,44 @@ export function FieldSetup() {
   }
 
   function handlePositionClick(positionId: string, playerId: string | null) {
-    if (!selectedPlayer) {
-      setSelectedPlayer({ type: 'field', positionId, playerId });
+    const intent = getPositionClickIntent(selectedPlayer, positionId, playerId);
+    if (intent.type === 'select-field') {
+      setSelectedPlayer(intent.selection);
       return;
     }
-    if (selectedPlayer.type === 'field' && selectedPlayer.positionId === positionId) {
+    if (intent.type === 'clear-selection') {
       setSelectedPlayer(null);
       return;
     }
-    if (selectedPlayer.type === 'field') {
-      const srcId = selectedPlayer.positionId;
-      const srcPlayerId = selectedPlayer.playerId;
+    if (intent.type === 'swap-fields') {
       const newLineup = currentMatch.lineup.map((e) => {
-        if (e.positionId === positionId) return { ...e, playerId: srcPlayerId };
-        if (e.positionId === srcId)      return { ...e, playerId };
+        if (e.positionId === positionId) return { ...e, playerId: intent.sourcePlayerId };
+        if (e.positionId === intent.sourcePositionId) return { ...e, playerId };
         return e;
       });
       dispatch({ type: 'UPDATE_LINEUP', payload: newLineup });
       setSelectedPlayer(null);
       return;
     }
-    // Bench player selected → assign to clicked field position
-    dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId, playerId: selectedPlayer.playerId } });
+    dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId, playerId: intent.benchPlayerId } });
     setSelectedPlayer(null);
   }
 
   function handleBenchClick(playerId: string) {
-    if (!selectedPlayer) {
-      setSelectedPlayer({ type: 'bench', playerId });
+    const intent = getBenchClickIntent(selectedPlayer, playerId);
+    if (intent.type === 'select-bench') {
+      setSelectedPlayer(intent.selection);
       return;
     }
-    if (selectedPlayer.type === 'bench' && selectedPlayer.playerId === playerId) {
+    if (intent.type === 'clear-selection') {
       setSelectedPlayer(null);
       return;
     }
-    if (selectedPlayer.type === 'bench') {
-      setSelectedPlayer({ type: 'bench', playerId });
+    if (intent.type === 'reselect-bench') {
+      setSelectedPlayer({ type: 'bench', playerId: intent.playerId });
       return;
     }
-    // Field position selected → assign this bench player to that position
-    dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId: selectedPlayer.positionId, playerId } });
+    dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId: intent.sourcePositionId, playerId } });
     setSelectedPlayer(null);
   }
 
@@ -170,74 +155,50 @@ export function FieldSetup() {
     const { active, over } = event;
     if (!over) return;
 
-    const dragData = active.data.current as {
-      playerId: string | null;
-      isOnField: boolean;
-      sourcePositionId?: string;
-    } | undefined;
+    const dragData = active.data.current as DragData | undefined;
+    const dropData = over.data.current as DropData;
+    const intent = getDragEndIntent(dragData, dropData);
 
-    const dropData = over.data.current as
-      | { positionId: string; isPosition: boolean; currentPlayerId?: string | null }
-      | { isEmptySlot: true }
-      | { isBenchPlayer: true; benchPlayerId: string }
-      | undefined;
+    if (intent.type === 'none' || intent.type === 'bench-to-bench-player') return;
 
-    if (!dragData?.playerId) return;
-    const playerId = dragData.playerId;
-
-    // ── Field player → empty bench slot: remove from field ───────────────
-    if (dropData && 'isEmptySlot' in dropData) {
-      if (dragData.isOnField) {
-        dispatch({
-          type: 'UPDATE_LINEUP',
-          payload: currentMatch.lineup.map((e) =>
-            e.playerId === playerId ? { ...e, playerId: null } : e
-          ),
-        });
-      }
+    if (intent.type === 'field-to-empty-bench') {
+      dispatch({
+        type: 'UPDATE_LINEUP',
+        payload: currentMatch.lineup.map((e) =>
+          e.playerId === intent.playerId ? { ...e, playerId: null } : e
+        ),
+      });
       return;
     }
 
-    // ── Field player → bench player: swap ────────────────────────────────
-    if (dropData && 'isBenchPlayer' in dropData) {
-      if (dragData.isOnField && dragData.sourcePositionId) {
-        dispatch({
-          type: 'UPDATE_LINEUP',
-          payload: currentMatch.lineup.map((e) =>
-            e.positionId === dragData.sourcePositionId
-              ? { ...e, playerId: dropData.benchPlayerId }
-              : e
-          ),
-        });
-      }
+    if (intent.type === 'field-to-bench-player') {
+      dispatch({
+        type: 'UPDATE_LINEUP',
+        payload: currentMatch.lineup.map((e) =>
+          e.positionId === intent.sourcePositionId
+            ? { ...e, playerId: intent.benchPlayerId }
+            : e
+        ),
+      });
       return;
     }
 
-    // ── Drop onto a field position ───────────────────────────────────────
-    if (dropData && 'isPosition' in dropData && dropData.isPosition) {
-      const targetPositionId = dropData.positionId;
-      const currentAtTarget = dropData.currentPlayerId ?? null;
+    if (intent.type === 'field-to-field') {
+      const newLineup = currentMatch.lineup.map((entry) => {
+        if (entry.positionId === intent.targetPositionId) return { ...entry, playerId: intent.playerId };
+        if (entry.positionId === intent.sourcePositionId) return { ...entry, playerId: intent.currentAtTarget };
+        return entry;
+      });
+      dispatch({ type: 'UPDATE_LINEUP', payload: newLineup });
+      return;
+    }
 
-      // Dragging from one field position to another → swap
-      if (dragData.isOnField && dragData.sourcePositionId) {
-        const srcId = dragData.sourcePositionId;
-        if (srcId === targetPositionId) return; // dropped on itself
-        const newLineup = currentMatch.lineup.map((entry) => {
-          if (entry.positionId === targetPositionId) return { ...entry, playerId };
-          if (entry.positionId === srcId) return { ...entry, playerId: currentAtTarget };
-          return entry;
-        });
-        dispatch({ type: 'UPDATE_LINEUP', payload: newLineup });
-        return;
-      }
-
-      // Dragging from bench → field position (occupied or empty)
-      // ASSIGN_PLAYER_TO_POSITION removes player from any slot and places at target;
-      // the displaced player's slot becomes null → they return to bench naturally.
+    if (intent.type === 'bench-to-empty-position' || intent.type === 'bench-to-occupied-position') {
       dispatch({
         type: 'ASSIGN_PLAYER_TO_POSITION',
-        payload: { positionId: targetPositionId, playerId },
+        payload: { positionId: intent.targetPositionId, playerId: intent.playerId },
       });
+      return;
     }
   }
 
@@ -344,7 +305,7 @@ export function FieldSetup() {
             <div className="bench">
               <h3 className="bench__title">Bank ({benchPlayers.length})</h3>
               <div className="bench__players">
-                {isDraggingFieldPlayer && <SetupBenchEmptySlot />}
+                {isDraggingFieldPlayer && <BenchEmptySlot dropId="bench-empty" />}
                 {benchPlayers.length === 0 && !isDraggingFieldPlayer && (
                   <p className="bench__empty">Geen beschikbare spelers</p>
                 )}

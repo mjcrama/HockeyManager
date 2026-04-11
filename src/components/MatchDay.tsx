@@ -9,13 +9,21 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-  useDroppable,
   pointerWithin,
 } from '@dnd-kit/core';
 import { useAppState, useAppDispatch } from '../context/AppContext';
 import { useTeam } from '../context/TeamContext';
+import { BenchEmptySlot, BenchPlayerDropTarget } from './BenchDropTarget';
 import { FieldCanvas } from './FieldCanvas';
 import { PlayerChip } from './PlayerChip';
+import {
+  getDragEndIntent,
+  getBenchClickIntent,
+  getPositionClickIntent,
+  type DragData,
+  type DropData,
+  type SelectedPlayer,
+} from './selectionIntents';
 import { TacticsBoard } from './TacticsBoard';
 import { getPositions } from '../data/formations';
 import { getPeriodLabel } from '../data/matchProfiles';
@@ -63,20 +71,6 @@ function playEndBeep(volume: 'soft' | 'loud') {
   } catch { /* audio not available */ }
 }
 
-// Empty drop slot — shown when a field player is being dragged
-function BenchEmptySlot() {
-  const { setNodeRef, isOver } = useDroppable({
-    id: 'matchday-bench-empty',
-    data: { isEmptySlot: true },
-  });
-  return (
-    <div
-      ref={setNodeRef}
-      className={['bench-empty-slot', isOver ? 'bench-empty-slot--over' : ''].join(' ').trim()}
-    />
-  );
-}
-
 interface BenchChipProps {
   player: Player;
   subCount: number;
@@ -88,19 +82,12 @@ interface BenchChipProps {
 }
 
 function BenchChip({ player, subCount, subbedOff, benchTime, isDragging, isSelected, onClick }: BenchChipProps) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `matchday-bench-drop-${player.id}`,
-    data: { isBenchPlayer: true, benchPlayerId: player.id },
-  });
-
   return (
-    <div
-      ref={setNodeRef}
-      className={[
-        subbedOff ? 'bench-chip-wrapper bench-chip-wrapper--subbed' : 'bench-chip-wrapper',
-        isOver ? 'bench-chip-wrapper--drop-over' : '',
-        isSelected ? 'bench-chip-wrapper--selected' : '',
-      ].filter(Boolean).join(' ')}
+    <BenchPlayerDropTarget
+      dropId={`matchday-bench-drop-${player.id}`}
+      benchPlayerId={player.id}
+      isSelected={isSelected}
+      isSubbedOff={subbedOff}
       onClick={onClick}
     >
       <PlayerChip
@@ -111,14 +98,9 @@ function BenchChip({ player, subCount, subbedOff, benchTime, isDragging, isSelec
         subCount={subCount}
       />
       {!isDragging && <span className="bench-timer-badge">{formatTime(benchTime)}</span>}
-    </div>
+    </BenchPlayerDropTarget>
   );
 }
-
-type SelectedPlayer =
-  | { type: 'field'; positionId: string; playerId: string | null }
-  | { type: 'bench'; playerId: string }
-  | null;
 
 export function MatchDay() {
   const { players, currentMatch } = useAppState();
@@ -332,21 +314,20 @@ export function MatchDay() {
 
   function handlePositionClick(positionId: string, playerId: string | null) {
     if (isViewer) return;
-    if (!selectedPlayer) {
-      setSelectedPlayer({ type: 'field', positionId, playerId });
+    const intent = getPositionClickIntent(selectedPlayer, positionId, playerId);
+    if (intent.type === 'select-field') {
+      setSelectedPlayer(intent.selection);
       return;
     }
-    if (selectedPlayer.type === 'field' && selectedPlayer.positionId === positionId) {
+    if (intent.type === 'clear-selection') {
       setSelectedPlayer(null);
       return;
     }
-    if (selectedPlayer.type === 'field') {
+    if (intent.type === 'swap-fields') {
       // Field → Field: swap positions (no substitution)
-      const srcId = selectedPlayer.positionId;
-      const srcPlayerId = selectedPlayer.playerId;
       const newLineup = currentMatch.lineup.map((e) => {
-        if (e.positionId === positionId) return { ...e, playerId: srcPlayerId };
-        if (e.positionId === srcId)      return { ...e, playerId };
+        if (e.positionId === positionId) return { ...e, playerId: intent.sourcePlayerId };
+        if (e.positionId === intent.sourcePositionId) return { ...e, playerId };
         return e;
       });
       dispatch({ type: 'UPDATE_LINEUP', payload: newLineup });
@@ -358,7 +339,7 @@ export function MatchDay() {
       dispatch({
         type: 'ADD_SUBSTITUTION',
         payload: {
-          playerOnId: selectedPlayer.playerId,
+          playerOnId: intent.benchPlayerId,
           playerOffId: playerId,
           positionId,
           minute: currentSeconds,
@@ -366,39 +347,40 @@ export function MatchDay() {
         },
       });
     } else {
-      dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId, playerId: selectedPlayer.playerId } });
+      dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId, playerId: intent.benchPlayerId } });
     }
     setSelectedPlayer(null);
   }
 
   function handleBenchClick(playerId: string) {
     if (isViewer) return;
-    if (!selectedPlayer) {
-      setSelectedPlayer({ type: 'bench', playerId });
+    const intent = getBenchClickIntent(selectedPlayer, playerId);
+    if (intent.type === 'select-bench') {
+      setSelectedPlayer(intent.selection);
       return;
     }
-    if (selectedPlayer.type === 'bench' && selectedPlayer.playerId === playerId) {
+    if (intent.type === 'clear-selection') {
       setSelectedPlayer(null);
       return;
     }
-    if (selectedPlayer.type === 'bench') {
-      setSelectedPlayer({ type: 'bench', playerId });
+    if (intent.type === 'reselect-bench') {
+      setSelectedPlayer({ type: 'bench', playerId: intent.playerId });
       return;
     }
     // Field position selected → substitute or assign
-    if (selectedPlayer.playerId) {
+    if (intent.sourcePlayerId) {
       dispatch({
         type: 'ADD_SUBSTITUTION',
         payload: {
           playerOnId: playerId,
-          playerOffId: selectedPlayer.playerId,
-          positionId: selectedPlayer.positionId,
+          playerOffId: intent.sourcePlayerId,
+          positionId: intent.sourcePositionId,
           minute: currentSeconds,
           timestamp: Date.now(),
         },
       });
     } else {
-      dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId: selectedPlayer.positionId, playerId } });
+      dispatch({ type: 'ASSIGN_PLAYER_TO_POSITION', payload: { positionId: intent.sourcePositionId, playerId } });
     }
     setSelectedPlayer(null);
   }
@@ -410,93 +392,71 @@ export function MatchDay() {
       const { active, over } = event;
       if (!over) return;
 
-      const dragData = active.data.current as {
-        playerId: string | null;
-        isOnField: boolean;
-        sourcePositionId?: string;
-      } | undefined;
+      const dragData = active.data.current as DragData | undefined;
+      const dropData = over.data.current as DropData;
+      const intent = getDragEndIntent(dragData, dropData);
 
-      const dropData = over.data.current as
-        | { positionId: string; isPosition: boolean; currentPlayerId?: string | null }
-        | { isEmptySlot: true }
-        | { isBenchPlayer: true; benchPlayerId: string }
-        | undefined;
+      if (intent.type === 'none' || intent.type === 'bench-to-bench-player') return;
 
-      if (!dragData?.playerId) return;
-      const playerId = dragData.playerId;
-
-      // ── Field player → empty bench slot: remove from field ────────────────
-      if (dropData && 'isEmptySlot' in dropData) {
-        if (dragData.isOnField) {
-          dispatch({
-            type: 'UPDATE_LINEUP',
-            payload: currentMatch.lineup.map((e) =>
-              e.playerId === playerId ? { ...e, playerId: null } : e
-            ),
-          });
-        }
+      if (intent.type === 'field-to-empty-bench') {
+        dispatch({
+          type: 'UPDATE_LINEUP',
+          payload: currentMatch.lineup.map((e) =>
+            e.playerId === intent.playerId ? { ...e, playerId: null } : e
+          ),
+        });
         return;
       }
 
-      // ── Field player → bench chip: substitute ─────────────────────────────
-      if (dropData && 'isBenchPlayer' in dropData) {
-        if (dragData.isOnField && dragData.sourcePositionId) {
-          dispatch({
-            type: 'ADD_SUBSTITUTION',
-            payload: {
-              playerOnId: dropData.benchPlayerId,
-              playerOffId: playerId,
-              positionId: dragData.sourcePositionId,
-              minute: currentSeconds,
-              timestamp: Date.now(),
-            },
-          });
-        }
+      if (intent.type === 'field-to-bench-player') {
+        dispatch({
+          type: 'ADD_SUBSTITUTION',
+          payload: {
+            playerOnId: intent.benchPlayerId,
+            playerOffId: intent.playerId,
+            positionId: intent.sourcePositionId,
+            minute: currentSeconds,
+            timestamp: Date.now(),
+          },
+        });
         return;
       }
 
-      if (!dropData || !('isPosition' in dropData) || !dropData.isPosition) return;
-
-      const targetPositionId = dropData.positionId;
-      const currentAtTarget  = dropData.currentPlayerId ?? null;
-
-      // ── Field → Field: swap ───────────────────────────────────────────────
-      if (dragData.isOnField && dragData.sourcePositionId) {
-        const srcId = dragData.sourcePositionId;
-        if (srcId === targetPositionId) return;
+      if (intent.type === 'field-to-field') {
         dispatch({
           type: 'UPDATE_LINEUP',
           payload: currentMatch.lineup.map((e) => {
-            if (e.positionId === targetPositionId) return { ...e, playerId };
-            if (e.positionId === srcId)            return { ...e, playerId: currentAtTarget };
+            if (e.positionId === intent.targetPositionId) return { ...e, playerId: intent.playerId };
+            if (e.positionId === intent.sourcePositionId) return { ...e, playerId: intent.currentAtTarget };
             return e;
           }),
         });
         return;
       }
 
-      // ── Bench → empty position ────────────────────────────────────────────
-      if (!currentAtTarget) {
+      if (intent.type === 'bench-to-empty-position') {
         dispatch({
           type: 'ASSIGN_PLAYER_TO_POSITION',
-          payload: { positionId: targetPositionId, playerId },
+          payload: { positionId: intent.targetPositionId, playerId: intent.playerId },
         });
         return;
       }
 
-      // ── Bench → occupied position: substitute ────────────────────────────
-      dispatch({
-        type: 'ADD_SUBSTITUTION',
-        payload: {
-          playerOnId: playerId,
-          playerOffId: currentAtTarget,
-          positionId: targetPositionId,
-          minute: currentSeconds,
-          timestamp: Date.now(),
-        },
-      });
+      if (intent.type === 'bench-to-occupied-position') {
+        dispatch({
+          type: 'ADD_SUBSTITUTION',
+          payload: {
+            playerOnId: intent.playerId,
+            playerOffId: intent.currentAtTarget,
+            positionId: intent.targetPositionId,
+            minute: currentSeconds,
+            timestamp: Date.now(),
+          },
+        });
+        return;
+      }
     },
-    [currentMatch.lineup, currentMatch.timerSeconds, dispatch]
+    [currentMatch.lineup, currentSeconds, dispatch]
   );
 
   const isPaused = (!currentMatch.timerRunning && !currentMatch.inBreak && !isMatchOver)
@@ -692,7 +652,7 @@ export function MatchDay() {
             <div className="match-day__bench">
               <h3 className="match-day__bench-title">Bank ({benchPlayers.length})</h3>
               <div className="match-day__bench-players">
-                {isDraggingFieldPlayer && <BenchEmptySlot />}
+                {isDraggingFieldPlayer && <BenchEmptySlot dropId="matchday-bench-empty" />}
                 {benchPlayers.map((p) => (
                   <BenchChip
                     key={p.id}

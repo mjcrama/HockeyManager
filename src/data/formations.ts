@@ -1,25 +1,4 @@
-import type { FieldPositionConfig, FieldSize, PlayerCount } from '../types';
-
-export const FIELD_SIZE_TO_PLAYER_COUNT: Record<FieldSize, PlayerCount> = {
-  full:           11,  // O12+ — 91.4×55m portrait
-  'three-quarter': 9,  // O11  — 68×55m  portrait
-  half:            8,  // O10  — 55×45.7m landscape (side-to-side)
-  small:           6,  // O9   — 43×25m  portrait
-  mini:            3,  // O8   — 23×23m  square, no GK
-};
-
-export const PLAYER_COUNT_TO_FIELD_SIZE: Record<PlayerCount, FieldSize> = {
-  11: 'full',
-  9:  'three-quarter',
-  8:  'half',
-  6:  'small',
-  3:  'mini',
-};
-
-/** All fields are portrait or square — no landscape mode. */
-export function isLandscapeField(_fieldSize: FieldSize): boolean {
-  return false;
-}
+import type { FieldPositionConfig, PlayerCount } from '../types';
 
 // ── 11v11  O12+ — portrait, GK bottom (y≈92), FWD top (y≈28) ────────────────
 export const POSITIONS_11: Record<string, FieldPositionConfig[]> = {
