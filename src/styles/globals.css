@@ -2622,6 +2622,10 @@ body {
     border: none;
   }
 
+  .match-day__bench-header {
+    padding-top: 8px;
+  }
+
   .match-day__bench-players {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -2890,3 +2894,25 @@ body {
   touch-action: none;
   user-select: none;
 }
+
+/* ===== SUBSTITUTION ADVISOR ===== */
+@keyframes advisor-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.25; }
+}
+
+.advisor-pulse {
+  animation: advisor-pulse 0.75s ease-in-out infinite;
+}
+
+.match-day__bench-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.match-day__bench-header .match-day__bench-title {
+  margin-bottom: 0;
+}
+

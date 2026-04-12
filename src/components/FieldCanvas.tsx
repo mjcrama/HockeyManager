@@ -14,7 +14,7 @@ import {
   CHIP_FILL, CHIP_STROKE, CHIP_PREFERRED_FILL, CHIP_EMPTY_STROKE,
   CHIP_EMPTY_FILL, CHIP_EMPTY_LABEL, CHIP_DRAGGING_FILL,
   CHIP_DROP_HOVER, CHIP_SUB_TARGET, CHIP_BADGE_FILL, CHIP_BADGE_STROKE,
-  CHIP_GLOW_STROKE,
+  CHIP_GLOW_STROKE, CHIP_ADVISOR_PULSE,
 } from './fieldColors';
 
 // Viewbox per field size (proportional to real KNHB dimensions)
@@ -246,6 +246,7 @@ interface PosZoneProps {
   isSubstitutionTarget?: boolean;
   isPreferredPosition?: boolean;
   isSelected?: boolean;
+  isAdvisorTarget?: boolean;
   onClick?: () => void;
 }
 
@@ -256,6 +257,7 @@ function PositionDropZone({
   isSubstitutionTarget = false,
   isPreferredPosition = false,
   isSelected = false,
+  isAdvisorTarget = false,
   onClick,
 }: PosZoneProps) {
   const { setNodeRef: setDropRef, isOver } = useDroppable({
@@ -311,6 +313,13 @@ function PositionDropZone({
 
   return (
     <g>
+      {isAdvisorTarget && !isSelected && (
+        <circle cx={cx} cy={cy} r={r + 5}
+          fill="none"
+          stroke={CHIP_ADVISOR_PULSE} strokeWidth={4}
+          className="advisor-pulse"
+        />
+      )}
       {isSelected && (
         <circle cx={cx} cy={cy} r={r + 4}
           fill="none"
@@ -387,6 +396,7 @@ interface FieldCanvasProps {
   selectedPositionId?: string | null;
   onPositionClick?: (positionId: string, playerId: string | null) => void;
   onTacticsClick?: () => void;
+  advisorPositionId?: string | null;
 }
 
 export function FieldCanvas({
@@ -399,6 +409,7 @@ export function FieldCanvas({
   selectedPositionId = null,
   onPositionClick,
   onTacticsClick,
+  advisorPositionId = null,
 }: FieldCanvasProps) {
   const { w: baseFW, h: baseFH } = VIEWBOX[fieldSize];
   const FW = baseFW;
@@ -452,6 +463,7 @@ export function FieldCanvas({
               isSubstitutionTarget={substitutionTargetId === pos.id}
               isPreferredPosition={matchesPreferred(pos.label, preferredPositionLabels)}
               isSelected={selectedPositionId === pos.id}
+              isAdvisorTarget={advisorPositionId === pos.id}
               onClick={onPositionClick ? () => onPositionClick(pos.id, entry.playerId) : undefined}
             />
           );

@@ -1,7 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useMatchTimer, formatTime } from '../hooks/useMatchTimer';
 import { Modal } from './Modal';
+import { getBestPositionForBenchPlayer } from '../utils/substitutionAdvisor';
+import type { AdvisorInput } from '../utils/substitutionAdvisor';
 import {
   DndContext,
   DragEndEvent,
@@ -184,6 +186,48 @@ export function MatchDay() {
 
   const getBenchTime = (playerId: string) =>
     Math.max(0, currentSeconds - (benchEntryMap[playerId] ?? 0));
+
+  // ── Substitution Advisor (field highlight only) ──
+  const advisorInput = useMemo<AdvisorInput | null>(() => {
+    if (!benchPlayers.length) return null;
+    const fieldEntries = currentMatch.lineup
+      .filter((e) => e.playerId && onFieldIds.has(e.playerId))
+      .map((e) => {
+        const pos = positions.find((p) => p.id === e.positionId);
+        const pl = players.find((p) => p.id === e.playerId);
+        return {
+          positionId: e.positionId,
+          positionLabel: pos?.label ?? '',
+          playerId: e.playerId!,
+          playerName: pl?.name ?? '',
+          playerJersey: pl?.jerseyNumber ?? 0,
+        };
+      });
+    if (!fieldEntries.length) return null;
+    return {
+      benchPlayers: benchPlayers.map((p) => ({
+        id: p.id, name: p.name, jerseyNumber: p.jerseyNumber,
+        preferredPositions: p.preferredPositions as string[],
+      })),
+      fieldEntries,
+      currentSeconds,
+      substitutions: currentMatch.substitutions,
+      subCounts,
+      benchEntryMap,
+    };
+  }, [benchPlayers, currentMatch.lineup, currentMatch.substitutions, currentSeconds, subCounts, benchEntryMap, positions, players, onFieldIds]);
+
+  // When a bench player is selected or dragged, find the best field position for the pulse highlight
+  const advisorPlayerId = selectedPlayer?.type === 'bench'
+    ? selectedPlayer.playerId
+    : activePlayerId && !onFieldIds.has(activePlayerId)
+      ? activePlayerId
+      : null;
+
+  const advisorPositionId = useMemo(() => {
+    if (!advisorPlayerId || !advisorInput) return null;
+    return getBestPositionForBenchPlayer(advisorPlayerId, advisorInput);
+  }, [advisorPlayerId, advisorInput]);
 
   // Show the empty bench slot when a field player is being dragged
   const isDraggingFieldPlayer = activePlayerId !== null && onFieldIds.has(activePlayerId);
@@ -520,12 +564,15 @@ export function MatchDay() {
               selectedPositionId={selectedPlayer?.type === 'field' ? selectedPlayer.positionId : null}
               onPositionClick={!isViewer ? handlePositionClick : undefined}
               onTacticsClick={!isViewer ? () => setTacticsOpen(true) : undefined}
+              advisorPositionId={advisorPositionId}
             />
           </div>
 
           <div className="match-day__sidebar">
             <div className="match-day__bench">
-              <h3 className="match-day__bench-title">Bank ({benchPlayers.length})</h3>
+              <div className="match-day__bench-header">
+                <h3 className="match-day__bench-title">Bank ({benchPlayers.length})</h3>
+              </div>
               <div className="match-day__bench-players">
                 {isDraggingFieldPlayer && <BenchEmptySlot dropId="matchday-bench-empty" />}
                 {benchPlayers.map((p) => (

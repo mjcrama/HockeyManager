@@ -25,10 +25,13 @@ export const CHIP_EMPTY_FILL = 'rgba(255,255,255,0.28)';
 export const CHIP_EMPTY_LABEL = 'rgba(255,255,255,0.6)';
 export const CHIP_DRAGGING_FILL = 'rgba(255,255,255,0.06)';
 export const CHIP_DROP_HOVER = 'rgba(96,165,250,0.55)';
-export const CHIP_SUB_TARGET = '#ff6b35';
+export const CHIP_SUB_TARGET = 'rgba(255,255,255,0.85)';
 export const CHIP_BADGE_FILL = '#0d3a8c';
 export const CHIP_BADGE_STROKE = '#60a5fa';
 export const CHIP_GLOW_STROKE = '#93c5fd';
+
+// ── Substitution advisor ──
+export const CHIP_ADVISOR_PULSE = 'rgba(255,255,255,0.6)';
 
 // ── Tactics arrows ──
 export const ARROW_COLOR = '#fbbf24';
