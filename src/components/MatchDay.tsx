@@ -145,7 +145,6 @@ export function MatchDay() {
     .filter((p) => p.available && !onFieldIds.has(p.id))
     .sort((a, b) => (subCounts.get(a.id) ?? 0) - (subCounts.get(b.id) ?? 0));
   const activePlayer = activePlayerId ? players.find((p) => p.id === activePlayerId) ?? null : null;
-  const preferredPositionLabels = activePlayer ? (activePlayer.preferredPositions as string[]) : [];
 
   // Stable ID string: only changes when the SET of bench players changes,
   // not on every re-render (timer ticks, etc.)
@@ -223,6 +222,12 @@ export function MatchDay() {
     : activePlayerId && !onFieldIds.has(activePlayerId)
       ? activePlayerId
       : null;
+  const advisorPlayer = advisorPlayerId
+    ? players.find((p) => p.id === advisorPlayerId) ?? null
+    : null;
+  const preferredPositionLabels = advisorPlayer
+    ? (advisorPlayer.preferredPositions as string[])
+    : [];
 
   const advisorPositionId = useMemo(() => {
     if (!advisorPlayerId || !advisorInput) return null;

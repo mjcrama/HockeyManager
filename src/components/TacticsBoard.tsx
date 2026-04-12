@@ -85,8 +85,8 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
   });
 
   // Match chip sizing to the setup/match fields and keep it based on the
-  // natural field so chips don't balloon when the viewBox stretches vertically.
-  const { chipRadius: chipR, fontSize } = getFieldChipMetrics(FW, baseFH);
+  // rendered field height so the chip-to-field ratio stays consistent.
+  const { chipRadius: chipR, fontSize } = getFieldChipMetrics(FW, layout.FH);
 
   function clientToSvg(clientX: number, clientY: number): { x: number; y: number } | null {
     const svg = svgRef.current;

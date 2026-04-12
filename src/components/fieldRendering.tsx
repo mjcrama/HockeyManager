@@ -4,6 +4,7 @@ interface FieldLayout {
   FH: number;
   offsetX: number;
   offsetY: number;
+  containerWidth: number;
 }
 
 interface UseResponsiveFieldLayoutOptions {
@@ -18,7 +19,7 @@ export function useResponsiveFieldLayout(
   const { onHeightChange } = options;
   const containerRef = useRef<HTMLDivElement>(null);
   const prevFHRef = useRef(baseFH);
-  const [layout, setLayout] = useState<FieldLayout>({ FH: baseFH, offsetX: 0, offsetY: 0 });
+  const [layout, setLayout] = useState<FieldLayout>({ FH: baseFH, offsetX: 0, offsetY: 0, containerWidth: 0 });
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -46,9 +47,10 @@ export function useResponsiveFieldLayout(
         if (
           Math.abs(prev.FH - FH) < 0.5 &&
           Math.abs(prev.offsetX - offsetX) < 0.5 &&
-          Math.abs(prev.offsetY - offsetY) < 0.5
+          Math.abs(prev.offsetY - offsetY) < 0.5 &&
+          Math.abs(prev.containerWidth - rect.width) < 0.5
         ) return prev;
-        return { FH, offsetX, offsetY };
+        return { FH, offsetX, offsetY, containerWidth: rect.width };
       });
     };
 
@@ -61,16 +63,19 @@ export function useResponsiveFieldLayout(
   return { containerRef, ...layout };
 }
 
-export function getFieldChipMetrics(fieldW: number, naturalH: number) {
-  const sizeBase = Math.min(fieldW, naturalH);
-  // Scale chips up on smaller fields so they stay tappable.
-  // sizeBase < 500 corresponds roughly to compact/mobile viewboxes.
-  const compact = sizeBase < 500;
+export function getFieldChipMetrics(
+  _fieldW: number,
+  fieldH: number,
+) {
+  // Preserve the mobile proportions from the stretched half-field reference:
+  // r = 37.474 at H = 719.1176  =>  ~5.21% of the rendered field height.
+  const chipRadius = fieldH * 0.05211;
+  const fontSize = fieldH * 0.01708;
 
   return {
-    sizeBase,
-    chipRadius: sizeBase * (compact ? 0.082 : 0.060),
-    fontSize: sizeBase * (compact ? 0.032 : 0.026),
+    sizeBase: fieldH,
+    chipRadius,
+    fontSize,
   };
 }
 

@@ -240,7 +240,6 @@ interface PosZoneProps {
   player: Player | null;
   fieldW: number;
   fieldH: number;
-  naturalH: number;
   subCount?: number;
   disableDrag?: boolean;
   isSubstitutionTarget?: boolean;
@@ -251,7 +250,7 @@ interface PosZoneProps {
 }
 
 function PositionDropZone({
-  config, entry, player, fieldW, fieldH, naturalH,
+  config, entry, player, fieldW, fieldH,
   subCount = 0,
   disableDrag = false,
   isSubstitutionTarget = false,
@@ -276,7 +275,7 @@ function PositionDropZone({
 
   // Size chips based on natural (non-stretched) field dimensions so they stay
   // consistent regardless of vertical stretching on narrow screens.
-  const { chipRadius: r, fontSize } = getFieldChipMetrics(fieldW, naturalH);
+  const { chipRadius: r, fontSize } = getFieldChipMetrics(fieldW, fieldH);
   const cx    = (config.x / 100) * fieldW;
   const cy    = (config.y / 100) * fieldH;
   const foPx  = r * 2 + 12;
@@ -457,7 +456,7 @@ export function FieldCanvas({
             <PositionDropZone
               key={pos.id}
               config={pos} entry={entry} player={player}
-              fieldW={FW} fieldH={FH} naturalH={baseFH}
+              fieldW={FW} fieldH={FH}
               subCount={entry.playerId ? (subCounts?.get(entry.playerId) ?? 0) : 0}
               disableDrag={disableDrag}
               isSubstitutionTarget={substitutionTargetId === pos.id}
