@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { useScrollLock } from '../hooks/useScrollLock';
+import { Modal } from './Modal';
 import {
   DndContext,
   DragEndEvent,
@@ -75,7 +75,6 @@ export function FieldSetup() {
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  useScrollLock(settingsOpen);
   const settingsRef = useRef<HTMLDivElement>(null);
   const [periodInput, setPeriodInput] = useState(String(currentMatch.periods));
   const [durationInput, setDurationInput] = useState(String(Math.round(currentMatch.timerDuration / 60)));
@@ -352,13 +351,7 @@ export function FieldSetup() {
       </DragOverlay>
 
       {settingsOpen && (
-        <div className="settings-modal-overlay" onClick={() => setSettingsOpen(false)}>
-          <div className="settings-modal settings-modal--wide" ref={settingsRef} onClick={(e) => e.stopPropagation()}>
-            <div className="settings-modal__header">
-              <span className="settings-modal__header-title">Opstelling instellingen</span>
-              <button className="settings-modal__close-x" onClick={() => setSettingsOpen(false)}>✕</button>
-            </div>
-            <div className="settings-modal__body">
+        <Modal title="Opstelling instellingen" onClose={() => setSettingsOpen(false)} wide modalRef={settingsRef}>
             <div className="settings-modal__field">
               <label className="settings-modal__field-label">Veldgrootte</label>
               <div className="timer-settings__row" style={{ flexWrap: 'wrap' }}>
@@ -517,10 +510,7 @@ export function FieldSetup() {
                 >Aan</button>
               </div>
             </div>
-
-            </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </DndContext>
   );

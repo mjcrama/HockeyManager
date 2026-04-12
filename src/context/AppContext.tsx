@@ -4,18 +4,9 @@ import { DEFAULT_FORMATIONS, getPositions } from '../data/formations';
 import { remapLineup } from '../data/remapLineup';
 import { MATCH_PROFILES } from '../data/matchProfiles';
 import { useTeam } from './TeamContext';
+import { generateId } from '../utils/id';
 
 const STORAGE_KEY = 'hockey-manager-state';
-
-/** UUID v4 that works in non-secure (HTTP) contexts where randomUUID() is unavailable */
-function generateId(): string {
-  const b = new Uint8Array(16);
-  crypto.getRandomValues(b);
-  b[6] = (b[6] & 0x0f) | 0x40;
-  b[8] = (b[8] & 0x3f) | 0x80;
-  const h = Array.from(b).map((x) => x.toString(16).padStart(2, '0'));
-  return `${h.slice(0,4).join('')}-${h.slice(4,6).join('')}-${h.slice(6,8).join('')}-${h.slice(8,10).join('')}-${h.slice(10).join('')}`;
-}
 
 function createDefaultMatch(): Match {
   const playerCount = 11;
@@ -485,14 +476,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
     case 'UNDO_LAST_SHOOTOUT': {
       const { playerId } = action.payload;
-      let removed = false;
-      const shootouts = [...state.currentMatch.shootouts]
-        .reverse()
-        .filter((e) => {
-          if (!removed && e.playerId === playerId) { removed = true; return false; }
-          return true;
-        })
-        .reverse();
+      const all = state.currentMatch.shootouts;
+      let idx = -1;
+      for (let i = all.length - 1; i >= 0; i--) {
+        if (all[i].playerId === playerId) { idx = i; break; }
+      }
+      if (idx === -1) return state;
+      const shootouts = [...all.slice(0, idx), ...all.slice(idx + 1)];
       return {
         ...state,
         currentMatch: { ...state.currentMatch, shootouts },

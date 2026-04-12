@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAppState, useAppDispatch } from '../context/AppContext';
-import { useScrollLock } from '../hooks/useScrollLock';
+import { Modal } from './Modal';
 import type { Player, Position } from '../types';
 
 const ALL_POSITIONS: Position[] = [
@@ -119,7 +119,6 @@ export function PlayerManager() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const modalOpen = showForm || editingPlayer !== null;
-  useScrollLock(modalOpen);
 
   function closeModal() {
     setShowForm(false);
@@ -174,49 +173,39 @@ export function PlayerManager() {
       </div>
 
       {modalOpen && (
-        <div className="settings-modal-overlay" onClick={closeModal}>
-          <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="settings-modal__header">
-              <span className="settings-modal__header-title">
-                {editingPlayer ? 'Speler bewerken' : 'Nieuwe speler'}
-              </span>
-              <button className="settings-modal__close-x" onClick={closeModal}>✕</button>
-            </div>
-            <div className="settings-modal__body">
-              <PlayerForm
-                initial={
-                  editingPlayer
-                    ? {
-                        name: editingPlayer.name,
-                        jerseyNumber: String(editingPlayer.jerseyNumber),
-                        preferredPositions: editingPlayer.preferredPositions,
-                      }
-                    : undefined
-                }
-                onSave={editingPlayer ? handleEditPlayer : handleAddPlayer}
-                onCancel={closeModal}
-              />
-              {editingPlayer && (
-                <div className="player-manager__delete-section">
-                  {deleteConfirmId === editingPlayer.id ? (
-                    <>
-                      <button className="btn btn--danger" onClick={() => handleDelete(editingPlayer.id)}>
-                        Verwijderen bevestigen
-                      </button>
-                      <button className="btn btn--ghost" onClick={() => setDeleteConfirmId(null)}>
-                        Annuleren
-                      </button>
-                    </>
-                  ) : (
-                    <button className="btn btn--ghost btn--md" onClick={() => setDeleteConfirmId(editingPlayer.id)}>
-                      🗑️ Speler verwijderen
-                    </button>
-                  )}
-                </div>
+        <Modal title={editingPlayer ? 'Speler bewerken' : 'Nieuwe speler'} onClose={closeModal}>
+          <PlayerForm
+            initial={
+              editingPlayer
+                ? {
+                    name: editingPlayer.name,
+                    jerseyNumber: String(editingPlayer.jerseyNumber),
+                    preferredPositions: editingPlayer.preferredPositions,
+                  }
+                : undefined
+            }
+            onSave={editingPlayer ? handleEditPlayer : handleAddPlayer}
+            onCancel={closeModal}
+          />
+          {editingPlayer && (
+            <div className="player-manager__delete-section">
+              {deleteConfirmId === editingPlayer.id ? (
+                <>
+                  <button className="btn btn--danger" onClick={() => handleDelete(editingPlayer.id)}>
+                    Verwijderen bevestigen
+                  </button>
+                  <button className="btn btn--ghost" onClick={() => setDeleteConfirmId(null)}>
+                    Annuleren
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn--ghost btn--md" onClick={() => setDeleteConfirmId(editingPlayer.id)}>
+                  🗑️ Speler verwijderen
+                </button>
               )}
             </div>
-          </div>
-        </div>
+          )}
+        </Modal>
       )}
 
       <div className="player-manager__stats">

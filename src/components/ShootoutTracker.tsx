@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppState, useAppDispatch } from '../context/AppContext';
 import { useTeam } from '../context/TeamContext';
-import { useScrollLock } from '../hooks/useScrollLock';
+import { Modal } from './Modal';
 import { getPositions } from '../data/formations';
 import type { Player, ShootoutEntry } from '../types';
 
@@ -23,8 +23,6 @@ export function ShootoutTracker() {
   const [sortKey, setSortKey] = useState<SortKey>('attempts');
   const [resetArmed, setResetArmed] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-
-  useScrollLock(pickerOpen);
 
   const shootouts = currentMatch.shootouts ?? [];
 
@@ -157,53 +155,45 @@ export function ShootoutTracker() {
 
       {/* Random picker modal */}
       {pickerOpen && nextShooter && (
-        <div className="settings-modal-overlay" onClick={() => setPickerOpen(false)}>
-          <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="settings-modal__header">
-              <span className="settings-modal__header-title">Random shootout speler</span>
-              <button className="settings-modal__close-x" onClick={() => setPickerOpen(false)}>✕</button>
+        <Modal title="Random shootout speler" onClose={() => setPickerOpen(false)}>
+          <div className="shootout-picker__player">
+            <div className="shootout-picker__player-info">
+              <span className="shootout-picker__jersey">#{nextShooter.jerseyNumber}</span>
+              <span className="shootout-picker__name">{nextShooter.name}</span>
+              {(() => {
+                const s = stats(nextShooter);
+                return s.attempts > 0 ? (
+                  <span className="shootout-picker__prev">({s.goals}/{s.attempts} eerder)</span>
+                ) : (
+                  <span className="shootout-picker__prev shootout-picker__prev--new">nog niet genomen</span>
+                );
+              })()}
             </div>
-            <div className="settings-modal__body">
-              <div className="shootout-picker__player">
-                <div className="shootout-picker__player-info">
-                  <span className="shootout-picker__jersey">#{nextShooter.jerseyNumber}</span>
-                  <span className="shootout-picker__name">{nextShooter.name}</span>
-                  {(() => {
-                    const s = stats(nextShooter);
-                    return s.attempts > 0 ? (
-                      <span className="shootout-picker__prev">({s.goals}/{s.attempts} eerder)</span>
-                    ) : (
-                      <span className="shootout-picker__prev shootout-picker__prev--new">nog niet genomen</span>
-                    );
-                  })()}
-                </div>
-                <div className="shootout-picker__shot-actions">
-                  <button className="btn btn--ghost btn--lg" onClick={() => addAttempt(nextShooter.id, false)}>
-                    Gemist
-                  </button>
-                  <button className="btn btn--primary btn--lg" onClick={() => addAttempt(nextShooter.id, true)}>
-                    Goal
-                  </button>
-                </div>
-              </div>
-              <div className="shootout-picker__modal-footer">
-                <button
-                  className="btn btn--ghost btn--lg btn--fullwidth"
-                  onClick={handlePickRandom}
-                  disabled={!availablePlayers.length}
-                >
-                  🎲 Kies opnieuw
-                </button>
-                {availablePlayers.length > 0 && (
-                  <p className="shootout-picker__hint">
-                    Kiest uit {availablePlayers.filter((p) => stats(p).attempts === minAttempts).length} speler(s)
-                    met het minste aantal pogingen ({minAttempts}×)
-                  </p>
-                )}
-              </div>
+            <div className="shootout-picker__shot-actions">
+              <button className="btn btn--ghost btn--lg" onClick={() => addAttempt(nextShooter.id, false)}>
+                Gemist
+              </button>
+              <button className="btn btn--primary btn--lg" onClick={() => addAttempt(nextShooter.id, true)}>
+                Goal
+              </button>
             </div>
           </div>
-        </div>
+          <div className="shootout-picker__modal-footer">
+            <button
+              className="btn btn--ghost btn--lg btn--fullwidth"
+              onClick={handlePickRandom}
+              disabled={!availablePlayers.length}
+            >
+              🎲 Kies opnieuw
+            </button>
+            {availablePlayers.length > 0 && (
+              <p className="shootout-picker__hint">
+                Kiest uit {availablePlayers.filter((p) => stats(p).attempts === minAttempts).length} speler(s)
+                met het minste aantal pogingen ({minAttempts}×)
+              </p>
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* Player list */}

@@ -6,6 +6,11 @@ import {
   renderFieldPlayerLabel,
   useResponsiveFieldLayout,
 } from './fieldRendering';
+import { shortId } from '../utils/id';
+import {
+  CHIP_FILL, CHIP_STROKE,
+  ARROW_COLOR, ARROW_SELECTED, ARROW_DELETE_FILL, ARROW_DELETE_STROKE,
+} from './fieldColors';
 
 interface Arrow {
   id: string;
@@ -34,10 +39,6 @@ type Interaction =
   | { kind: 'none' }
   | { kind: 'drawing'; x1: number; y1: number; x2: number; y2: number }
   | { kind: 'dragging-chip'; playerId: string; offsetX: number; offsetY: number };
-
-function uid(): string {
-  return Math.random().toString(36).slice(2, 10);
-}
 
 export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }: TacticsBoardProps) {
   const baseFW = VIEWBOX[fieldSize].w;
@@ -150,7 +151,7 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
       const dist = Math.sqrt(dx * dx + dy * dy);
       // Only commit if the drag was long enough to be intentional
       if (dist > 8) {
-        setArrows((prev) => [...prev, { id: uid(), x1, y1, x2, y2 }]);
+        setArrows((prev) => [...prev, { id: shortId(8), x1, y1, x2, y2 }]);
       }
     }
     setInteraction({ kind: 'none' });
@@ -220,7 +221,7 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
                 markerHeight="6"
                 orient="auto-start-reverse"
               >
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#fbbf24" />
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={ARROW_COLOR} />
               </marker>
             </defs>
 
@@ -258,7 +259,7 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
                     y1={a.y1}
                     x2={a.x2}
                     y2={a.y2}
-                    stroke={isSelected ? '#fde68a' : '#fbbf24'}
+                    stroke={isSelected ? ARROW_SELECTED : ARROW_COLOR}
                     strokeWidth={isSelected ? 5 : 4}
                     strokeLinecap="round"
                     markerEnd="url(#tactics-arrowhead)"
@@ -275,7 +276,7 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
                 y1={previewArrow.y1}
                 x2={previewArrow.x2}
                 y2={previewArrow.y2}
-                stroke="#fde68a"
+                stroke={ARROW_SELECTED}
                 strokeWidth={4}
                 strokeLinecap="round"
                 markerEnd="url(#tactics-arrowhead)"
@@ -296,8 +297,8 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
                     cx={chip.x}
                     cy={chip.y}
                     r={chipR}
-                    fill="#1565c0"
-                    stroke="#93c5fd"
+                    fill={CHIP_FILL}
+                    stroke={CHIP_STROKE}
                     strokeWidth={2.5}
                   />
                   {renderFieldPlayerLabel({
@@ -324,8 +325,8 @@ export function TacticsBoard({ positions, lineup, players, fieldSize, onClose }:
                   cx={deleteBtn.x}
                   cy={deleteBtn.y}
                   r={chipR * 0.55}
-                  fill="#dc2626"
-                  stroke="#fecaca"
+                  fill={ARROW_DELETE_FILL}
+                  stroke={ARROW_DELETE_STROKE}
                   strokeWidth={2}
                 />
                 <text

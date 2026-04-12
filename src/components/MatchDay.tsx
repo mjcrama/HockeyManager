@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '../hooks/useScrollLock';
+import { useMatchTimer, formatTime } from '../hooks/useMatchTimer';
+import { Modal } from './Modal';
 import {
   DndContext,
   DragEndEvent,
@@ -26,7 +28,6 @@ import {
 } from './selectionIntents';
 import { TacticsBoard } from './TacticsBoard';
 import { getPositions } from '../data/formations';
-import { getPeriodLabel } from '../data/matchProfiles';
 import { WedstrijdIcon, ScoreIcon, WisselsIcon, OpstellingIcon } from './Icons';
 import type { Player } from '../types';
 
@@ -39,36 +40,6 @@ function getInitialLineup(
     (acc, s) => acc.map((e) => e.positionId === s.positionId ? { ...e, playerId: s.playerOffId } : e),
     lineup
   );
-}
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-function playEndBeep(volume: 'soft' | 'loud') {
-  try {
-    const ctx = new AudioContext();
-    const gainLevel = volume === 'loud' ? 1.0 : 0.3;
-    const roundDuration = 1.1; // 3 beeps × ~0.37s each
-    const pause = 2.0;
-    [0, 1, 2].forEach((round) => {
-      const base = round * (roundDuration + pause);
-      [0, 0.4, 0.8].forEach((offset) => {
-        const t = base + offset;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(gainLevel, ctx.currentTime + t);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
-        osc.start(ctx.currentTime + t);
-        osc.stop(ctx.currentTime + t + 0.3);
-      });
-    });
-  } catch { /* audio not available */ }
 }
 
 interface BenchChipProps {
@@ -111,58 +82,17 @@ export function MatchDay() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [tacticsOpen,  setTacticsOpen]  = useState(false);
-  useScrollLock(settingsOpen);
   useScrollLock(tacticsOpen);
   const [benchEntryMap, setBenchEntryMap] = useState<Record<string, number>>({});
 
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  // Local tick to trigger re-renders while running or break is running
-  const [, tick] = useState(0);
-  useEffect(() => {
-    if (!currentMatch.timerRunning && !currentMatch.breakRunning) return;
-    const id = setInterval(() => tick((n) => n + 1), 500);
-    return () => clearInterval(id);
-  }, [currentMatch.timerRunning, currentMatch.breakRunning]);
-
-  // Compute current elapsed seconds from wall clock
-  const currentSeconds = currentMatch.timerRunning && currentMatch.timerStartedAt != null
-    ? currentMatch.timerSeconds + Math.floor((Date.now() - currentMatch.timerStartedAt) / 1000)
-    : currentMatch.timerSeconds;
-
-  // Compute current break seconds from wall clock
-  const currentBreakSeconds = currentMatch.breakRunning && currentMatch.breakStartedAt != null
-    ? currentMatch.breakSeconds + Math.floor((Date.now() - currentMatch.breakStartedAt) / 1000)
-    : currentMatch.breakSeconds;
-
-  // Beep + vibrate when period timer crosses duration
-  const prevSeconds = useRef(currentSeconds);
-  const prevBreakSeconds = useRef(currentBreakSeconds);
-  useEffect(() => {
-    const prev = prevSeconds.current;
-    prevSeconds.current = currentSeconds;
-    const periodEnded = currentMatch.timerRunning &&
-      currentMatch.timerDuration > 0 &&
-      prev < currentMatch.timerDuration &&
-      currentSeconds >= currentMatch.timerDuration;
-
-    if (periodEnded) {
-      if (currentMatch.timerBeep !== 'off') playEndBeep(currentMatch.timerBeep);
-      if (currentMatch.timerVibrate && 'vibrate' in navigator) navigator.vibrate([300, 150, 300, 150, 300]);
-    }
-
-    const prevBreak = prevBreakSeconds.current;
-    prevBreakSeconds.current = currentBreakSeconds;
-    const breakEnded = currentMatch.breakRunning &&
-      currentMatch.breakDuration > 0 &&
-      prevBreak < currentMatch.breakDuration &&
-      currentBreakSeconds >= currentMatch.breakDuration;
-
-    if (breakEnded) {
-      if (currentMatch.timerBeep !== 'off') playEndBeep(currentMatch.timerBeep);
-      if (currentMatch.timerVibrate && 'vibrate' in navigator) navigator.vibrate([300, 150, 300, 150, 300]);
-    }
-  });
+  const timer = useMatchTimer(currentMatch);
+  const {
+    currentSeconds, isOvertime, isBreakOvertime, isMatchOver, isLastPeriod, isPaused,
+    periodLabel, nextPeriodLabel, endPeriodLabel,
+    progressSegments, totalMatchDuration, absolutePosition,
+  } = timer;
 
   // Close drawer on outside click
   useEffect(() => {
@@ -175,53 +105,6 @@ export function MatchDay() {
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
   }, [controlsOpen]);
-
-  const isOvertime = currentMatch.timerDuration > 0 && currentSeconds >= currentMatch.timerDuration;
-  const isBreakOvertime = currentMatch.inBreak && currentMatch.breakDuration > 0 && currentBreakSeconds >= currentMatch.breakDuration;
-  const isMatchOver = currentMatch.currentPeriod > currentMatch.periods && !currentMatch.inBreak;
-  const isLastPeriod = currentMatch.currentPeriod >= currentMatch.periods;
-
-  const displaySeconds = currentMatch.timerCountDown
-    ? isOvertime
-      ? currentSeconds - currentMatch.timerDuration
-      : currentMatch.timerDuration - currentSeconds
-    : currentSeconds;
-
-  const displayBreakSeconds = isBreakOvertime
-    ? currentBreakSeconds - currentMatch.breakDuration
-    : currentMatch.breakDuration - currentBreakSeconds;
-
-  const periodLabel = isMatchOver
-    ? 'Wedstrijd afgelopen'
-    : currentMatch.inBreak
-      ? 'Rust'
-      : getPeriodLabel(currentMatch.currentPeriod, currentMatch.periods);
-
-  const nextPeriodLabel = getPeriodLabel(currentMatch.currentPeriod + 1, currentMatch.periods);
-  const endPeriodLabel = isLastPeriod ? 'Wedstrijd beëindigen' : `Einde ${getPeriodLabel(currentMatch.currentPeriod, currentMatch.periods)} →`;
-
-  // Build match progress segments
-  const progressSegments: { type: 'period' | 'break'; duration: number; start: number }[] = [];
-  let segOffset = 0;
-  for (let i = 0; i < currentMatch.periods; i++) {
-    progressSegments.push({ type: 'period', duration: currentMatch.timerDuration, start: segOffset });
-    segOffset += currentMatch.timerDuration;
-    if (i < currentMatch.periods - 1) {
-      progressSegments.push({ type: 'break', duration: currentMatch.breakDuration, start: segOffset });
-      segOffset += currentMatch.breakDuration;
-    }
-  }
-  const totalMatchDuration = segOffset;
-
-  const absolutePosition = isMatchOver
-    ? totalMatchDuration
-    : currentMatch.inBreak
-      ? currentMatch.currentPeriod * currentMatch.timerDuration +
-        (currentMatch.currentPeriod - 1) * currentMatch.breakDuration +
-        currentBreakSeconds
-      : (currentMatch.currentPeriod - 1) * currentMatch.timerDuration +
-        (currentMatch.currentPeriod - 1) * currentMatch.breakDuration +
-        currentSeconds;
 
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
   const touchSensor   = useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 5 } });
@@ -459,8 +342,6 @@ export function MatchDay() {
     [currentMatch.lineup, currentSeconds, dispatch]
   );
 
-  const isPaused = (!currentMatch.timerRunning && !currentMatch.inBreak && !isMatchOver)
-    || (currentMatch.inBreak && !currentMatch.breakRunning);
   const timerDisplayClass = [
     'match-timer__display',
     (isOvertime || isBreakOvertime) ? 'match-timer__display--overtime' : '',
@@ -487,10 +368,7 @@ export function MatchDay() {
           >
             <span className="match-timer__period-label">{periodLabel}</span>
             <span className={timerDisplayClass}>
-              {currentMatch.inBreak
-                ? (isBreakOvertime ? '+' : '') + formatTime(displayBreakSeconds)
-                : (isOvertime && currentMatch.timerCountDown ? '+' : '') + formatTime(displaySeconds)
-              }
+              {currentMatch.inBreak ? timer.displayBreakTime : timer.displayTime}
             </span>
             {!isViewer && (
               <button
@@ -617,10 +495,7 @@ export function MatchDay() {
             <div className="match-timer__row match-timer__row--viewer">
               <span className="match-timer__viewer-period">{periodLabel}</span>
               <div className={`match-timer__display${(isOvertime || isBreakOvertime) ? ' match-timer__display--overtime' : ''}`}>
-                {currentMatch.inBreak
-                  ? (isBreakOvertime ? '+' : '') + formatTime(displayBreakSeconds)
-                  : (isOvertime && currentMatch.timerCountDown ? '+' : '') + formatTime(displaySeconds)
-                }
+                {currentMatch.inBreak ? timer.displayBreakTime : timer.displayTime}
               </div>
               <div className="match-timer__viewer-score">
                 <span className="match-score__value">{currentMatch.homeScore}</span>
@@ -685,48 +560,40 @@ export function MatchDay() {
       )}
 
       {settingsOpen && (
-        <div className="settings-modal-overlay" onClick={() => setSettingsOpen(false)}>
-          <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="settings-modal__header">
-              <span className="settings-modal__header-title">Resetten</span>
-              <button className="settings-modal__close-x" onClick={() => setSettingsOpen(false)}>✕</button>
-            </div>
-            <div className="settings-modal__body">
-              <div className="timer-settings__reset-grid">
-                <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_TIMER' }); setSettingsOpen(false); }}>
-                  <span className="timer-settings__reset-icon"><WedstrijdIcon size={20} /></span>
-                  Tijd
-                </button>
-                <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_SCORE' }); setSettingsOpen(false); }}>
-                  <span className="timer-settings__reset-icon"><ScoreIcon size={20} /></span>
-                  Score
-                </button>
-                <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_SUBSTITUTIONS' }); setSettingsOpen(false); }}>
-                  <span className="timer-settings__reset-icon"><WisselsIcon size={20} /></span>
-                  Wissels
-                </button>
-                <button className="timer-settings__reset-btn" onClick={() => {
-                  const original = getInitialLineup(currentMatch.substitutions, currentMatch.lineup);
-                  dispatch({ type: 'UPDATE_LINEUP', payload: original });
-                  dispatch({ type: 'RESET_SUBSTITUTIONS' });
-                  setSettingsOpen(false);
-                }}>
-                  <span className="timer-settings__reset-icon"><OpstellingIcon size={20} /></span>
-                  Opstelling
-                </button>
-                <button className="timer-settings__reset-btn timer-settings__reset-btn--danger" onClick={() => {
-                  dispatch({ type: 'RESET_TIMER' });
-                  dispatch({ type: 'RESET_SCORE' });
-                  dispatch({ type: 'RESET_SUBSTITUTIONS' });
-                  setSettingsOpen(false);
-                }}>
-                  <span className="timer-settings__reset-icon">↺</span>
-                  Alles
-                </button>
-              </div>
-            </div>
+        <Modal title="Resetten" onClose={() => setSettingsOpen(false)}>
+          <div className="timer-settings__reset-grid">
+            <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_TIMER' }); setSettingsOpen(false); }}>
+              <span className="timer-settings__reset-icon"><WedstrijdIcon size={20} /></span>
+              Tijd
+            </button>
+            <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_SCORE' }); setSettingsOpen(false); }}>
+              <span className="timer-settings__reset-icon"><ScoreIcon size={20} /></span>
+              Score
+            </button>
+            <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_SUBSTITUTIONS' }); setSettingsOpen(false); }}>
+              <span className="timer-settings__reset-icon"><WisselsIcon size={20} /></span>
+              Wissels
+            </button>
+            <button className="timer-settings__reset-btn" onClick={() => {
+              const original = getInitialLineup(currentMatch.substitutions, currentMatch.lineup);
+              dispatch({ type: 'UPDATE_LINEUP', payload: original });
+              dispatch({ type: 'RESET_SUBSTITUTIONS' });
+              setSettingsOpen(false);
+            }}>
+              <span className="timer-settings__reset-icon"><OpstellingIcon size={20} /></span>
+              Opstelling
+            </button>
+            <button className="timer-settings__reset-btn timer-settings__reset-btn--danger" onClick={() => {
+              dispatch({ type: 'RESET_TIMER' });
+              dispatch({ type: 'RESET_SCORE' });
+              dispatch({ type: 'RESET_SUBSTITUTIONS' });
+              setSettingsOpen(false);
+            }}>
+              <span className="timer-settings__reset-icon">↺</span>
+              Alles
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       <DragOverlay>

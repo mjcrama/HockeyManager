@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { ref, set, get, update, onValue } from 'firebase/database';
 import { db } from '../firebase';
+import { shortId } from '../utils/id';
 
 export interface TeamEntry { id: string; name: string; }
 
@@ -31,19 +32,11 @@ const _teamId    = _params.get('team');
 const _isCoach   = _params.get('coach') === '1';
 const _IS_VIEWER = Boolean(_teamId) && !_isCoach;
 
-function generateId(len = 10) {
-  return Array.from(crypto.getRandomValues(new Uint8Array(len)))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-    .slice(0, len)
-    .toUpperCase();
-}
-
 export function TeamProvider({ children }: { children: ReactNode }) {
   const [deviceId] = useState(() => {
     const stored = localStorage.getItem('hockey-deviceId');
     if (stored) return stored;
-    const id = generateId(12);
+    const id = shortId(12);
     localStorage.setItem('hockey-deviceId', id);
     return id;
   });
@@ -61,7 +54,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     }
     const stored = localStorage.getItem('hockey-teamId');
     if (stored) return stored;
-    const id = generateId();
+    const id = shortId();
     localStorage.setItem('hockey-teamId', id);
     return id;
   });
@@ -128,7 +121,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   }
 
   function createTeam(defaultName: string) {
-    const newId = generateId();
+    const newId = shortId();
     setTeamIdState(newId);
     localStorage.setItem('hockey-teamId', newId);
     setTeamNameState(defaultName);

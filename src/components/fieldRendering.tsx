@@ -62,14 +62,15 @@ export function useResponsiveFieldLayout(
 }
 
 export function getFieldChipMetrics(fieldW: number, naturalH: number) {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 600;
   const sizeBase = Math.min(fieldW, naturalH);
+  // Scale chips up on smaller fields so they stay tappable.
+  // sizeBase < 500 corresponds roughly to compact/mobile viewboxes.
+  const compact = sizeBase < 500;
 
   return {
-    isMobile,
     sizeBase,
-    chipRadius: sizeBase * (isMobile ? 0.082 : 0.060),
-    fontSize: sizeBase * (isMobile ? 0.032 : 0.026),
+    chipRadius: sizeBase * (compact ? 0.082 : 0.060),
+    fontSize: sizeBase * (compact ? 0.032 : 0.026),
   };
 }
 

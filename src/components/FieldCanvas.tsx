@@ -7,6 +7,15 @@ import {
   renderFieldPlayerLabel,
   useResponsiveFieldLayout,
 } from './fieldRendering';
+import {
+  FIELD_GREEN, FIELD_STRIPE, FIELD_LINE, FIELD_LINE_WIDTH as LW,
+  FIELD_DZONE_FILL, FIELD_DZONE_FILL_SM, FIELD_GOAL_FILL, FIELD_GOAL_FILL_MINI,
+  FIELD_TEXT_DIM, FIELD_TEXT_ZONE,
+  CHIP_FILL, CHIP_STROKE, CHIP_PREFERRED_FILL, CHIP_EMPTY_STROKE,
+  CHIP_EMPTY_FILL, CHIP_EMPTY_LABEL, CHIP_DRAGGING_FILL,
+  CHIP_DROP_HOVER, CHIP_SUB_TARGET, CHIP_BADGE_FILL, CHIP_BADGE_STROKE,
+  CHIP_GLOW_STROKE,
+} from './fieldColors';
 
 // Viewbox per field size (proportional to real KNHB dimensions)
 // Full 91.4×55 → portrait 550×840  (ratio 0.655, real 0.602 — close enough)
@@ -47,8 +56,7 @@ export function FieldBackground({
   }
 }
 
-const LINE = 'rgba(255,255,255,0.75)';
-const LW   = 2;
+const LINE = FIELD_LINE;
 
 // ── Full field  91.4×55m — both goals, center circle ────────────────────────
 // `h` is the (possibly stretched) viewBox height; `nh` is the natural height
@@ -61,10 +69,10 @@ function FieldFull({ w, h, nh }: { w: number; h: number; nh: number }) {
   const gH = nh * 0.018;
   return (
     <>
-      <rect width={w} height={h} fill="#1a6b3a" rx={3} />
+      <rect width={w} height={h} fill={FIELD_GREEN} rx={3} />
       {Array.from({ length: 8 }).map((_, i) => (
         <rect key={i} x={0} y={(i * h) / 8} width={w} height={h / 8}
-          fill={i % 2 === 0 ? 'rgba(0,0,0,0.06)' : 'transparent'} />
+          fill={i % 2 === 0 ? FIELD_STRIPE : 'transparent'} />
       ))}
       <rect x={1} y={1} width={w-2} height={h-2} fill="none" stroke={LINE} strokeWidth={LW*1.5} />
       {/* Center */}
@@ -73,14 +81,14 @@ function FieldFull({ w, h, nh }: { w: number; h: number; nh: number }) {
       <circle cx={w/2} cy={h/2} r={LW*1.5} fill={LINE} />
       {/* D zones */}
       <path d={`M${w/2-dW/2} 0 Q${w/2} ${dR*1.45} ${w/2+dW/2} 0`}
-        fill="rgba(255,255,255,0.05)" stroke={LINE} strokeWidth={LW} />
+        fill={FIELD_DZONE_FILL} stroke={LINE} strokeWidth={LW} />
       <path d={`M${w/2-dW/2} ${h} Q${w/2} ${h-dR*1.45} ${w/2+dW/2} ${h}`}
-        fill="rgba(255,255,255,0.05)" stroke={LINE} strokeWidth={LW} />
+        fill={FIELD_DZONE_FILL} stroke={LINE} strokeWidth={LW} />
       {/* Goals */}
       <rect x={w/2-gW/2} y={0} width={gW} height={gH}
-        fill="rgba(255,255,255,0.2)" stroke={LINE} strokeWidth={LW*0.8} />
+        fill={FIELD_GOAL_FILL} stroke={LINE} strokeWidth={LW*0.8} />
       <rect x={w/2-gW/2} y={h-gH} width={gW} height={gH}
-        fill="rgba(255,255,255,0.2)" stroke={LINE} strokeWidth={LW*0.8} />
+        fill={FIELD_GOAL_FILL} stroke={LINE} strokeWidth={LW*0.8} />
       {/* 25-yard lines — fixed distance from the goal lines */}
       <line x1={0} y1={nh*0.25} x2={w} y2={nh*0.25} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
       <line x1={0} y1={h - nh*0.25} x2={w} y2={h - nh*0.25} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
@@ -99,22 +107,22 @@ function FieldThreeQuarter({ w, h, nh }: { w: number; h: number; nh: number }) {
   const gH = nh * 0.02;
   return (
     <>
-      <rect width={w} height={h} fill="#1a6b3a" rx={3} />
+      <rect width={w} height={h} fill={FIELD_GREEN} rx={3} />
       {Array.from({ length: 6 }).map((_, i) => (
         <rect key={i} x={0} y={(i * h) / 6} width={w} height={h / 6}
-          fill={i % 2 === 0 ? 'rgba(0,0,0,0.06)' : 'transparent'} />
+          fill={i % 2 === 0 ? FIELD_STRIPE : 'transparent'} />
       ))}
       <rect x={1} y={1} width={w-2} height={h-2} fill="none" stroke={LINE} strokeWidth={LW*1.5} />
       {/* Bottom D + goal (GK end) */}
       <path d={`M${w/2-dW/2} ${h} Q${w/2} ${h-dR*1.45} ${w/2+dW/2} ${h}`}
-        fill="rgba(255,255,255,0.05)" stroke={LINE} strokeWidth={LW} />
+        fill={FIELD_DZONE_FILL} stroke={LINE} strokeWidth={LW} />
       <rect x={w/2-gW/2} y={h-gH} width={gW} height={gH}
-        fill="rgba(255,255,255,0.2)" stroke={LINE} strokeWidth={LW*0.8} />
+        fill={FIELD_GOAL_FILL} stroke={LINE} strokeWidth={LW*0.8} />
       <circle cx={w/2} cy={h - nh*0.08} r={LW*1.8} fill={LINE} />
       {/* 25-yard line — fixed distance from the GK end */}
       <line x1={0} y1={h - nh*0.34} x2={w} y2={h - nh*0.34} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
       {/* Centre-line of full field at top */}
-      <text x={w/2} y={nh*0.04} textAnchor="middle" fill="rgba(255,255,255,0.35)"
+      <text x={w/2} y={nh*0.04} textAnchor="middle" fill={FIELD_TEXT_DIM}
         fontSize={LW*8} fontFamily="sans-serif">MIDDELLIJN</text>
     </>
   );
@@ -131,26 +139,26 @@ function FieldHalf({ w, h, nh }: { w: number; h: number; nh: number }) {
   const pSpot = nh * 0.14;  // penalty spot: 6.4m / 45.7m from goal line
   return (
     <>
-      <rect width={w} height={h} fill="#1a6b3a" rx={3} />
+      <rect width={w} height={h} fill={FIELD_GREEN} rx={3} />
       {Array.from({ length: 6 }).map((_, i) => (
         <rect key={i} x={0} y={(i * h) / 6} width={w} height={h / 6}
-          fill={i % 2 === 0 ? 'rgba(0,0,0,0.06)' : 'transparent'} />
+          fill={i % 2 === 0 ? FIELD_STRIPE : 'transparent'} />
       ))}
       <rect x={1} y={1} width={w-2} height={h-2} fill="none" stroke={LINE} strokeWidth={LW*1.5} />
       {/* Centre line (≈23m from each end, almost exactly h/2 for 45.7m field) */}
       <line x1={0} y1={h/2} x2={w} y2={h/2} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
       {/* Bottom D (GK end) */}
       <path d={`M${w/2-dW/2} ${h} Q${w/2} ${h-dR*1.45} ${w/2+dW/2} ${h}`}
-        fill="rgba(255,255,255,0.05)" stroke={LINE} strokeWidth={LW} />
+        fill={FIELD_DZONE_FILL} stroke={LINE} strokeWidth={LW} />
       {/* Top D (attacking end) */}
       <path d={`M${w/2-dW/2} 0 Q${w/2} ${dR*1.45} ${w/2+dW/2} 0`}
-        fill="rgba(255,255,255,0.05)" stroke={LINE} strokeWidth={LW} />
+        fill={FIELD_DZONE_FILL} stroke={LINE} strokeWidth={LW} />
       {/* Bottom goal (GK end) */}
       <rect x={w/2-gW/2} y={h-gH} width={gW} height={gH}
-        fill="rgba(255,255,255,0.2)" stroke={LINE} strokeWidth={LW*0.8} />
+        fill={FIELD_GOAL_FILL} stroke={LINE} strokeWidth={LW*0.8} />
       {/* Top goal (attacking end) */}
       <rect x={w/2-gW/2} y={0} width={gW} height={gH}
-        fill="rgba(255,255,255,0.2)" stroke={LINE} strokeWidth={LW*0.8} />
+        fill={FIELD_GOAL_FILL} stroke={LINE} strokeWidth={LW*0.8} />
       {/* Penalty spots */}
       <circle cx={w/2} cy={h - pSpot} r={LW*1.8} fill={LINE} />
       <circle cx={w/2} cy={pSpot}     r={LW*1.8} fill={LINE} />
@@ -166,26 +174,26 @@ function FieldSmall({ w, h, nh }: { w: number; h: number; nh: number }) {
   const gH   = nh * 0.015;
   return (
     <>
-      <rect width={w} height={h} fill="#1a6b3a" rx={3} />
+      <rect width={w} height={h} fill={FIELD_GREEN} rx={3} />
       {Array.from({ length: 6 }).map((_, i) => (
         <rect key={i} x={0} y={(i * h) / 6} width={w} height={h / 6}
-          fill={i % 2 === 0 ? 'rgba(0,0,0,0.06)' : 'transparent'} />
+          fill={i % 2 === 0 ? FIELD_STRIPE : 'transparent'} />
       ))}
       <rect x={1} y={1} width={w-2} height={h-2} fill="none" stroke={LINE} strokeWidth={LW*1.5} />
       {/* Bottom 10m scoring zone (GK end) */}
       <rect x={1} y={h - zone} width={w-2} height={zone - 1}
-        fill="rgba(255,255,255,0.04)" stroke={LINE} strokeWidth={LW*0.8} />
+        fill={FIELD_DZONE_FILL_SM} stroke={LINE} strokeWidth={LW*0.8} />
       {/* Top 10m scoring zone (attacking end) */}
       <rect x={1} y={1} width={w-2} height={zone}
-        fill="rgba(255,255,255,0.04)" stroke={LINE} strokeWidth={LW*0.8} />
+        fill={FIELD_DZONE_FILL_SM} stroke={LINE} strokeWidth={LW*0.8} />
       {/* Bottom goal (GK end) */}
       <rect x={w/2-gW/2} y={h-gH} width={gW} height={gH}
-        fill="rgba(255,255,255,0.2)" stroke={LINE} strokeWidth={LW*0.8} />
+        fill={FIELD_GOAL_FILL} stroke={LINE} strokeWidth={LW*0.8} />
       {/* 10m zone labels */}
       <text x={w*0.98} y={h - zone + 12} textAnchor="end"
-        fill="rgba(255,255,255,0.4)" fontSize={LW*7} fontFamily="sans-serif">10m zone</text>
+        fill={FIELD_TEXT_ZONE} fontSize={LW*7} fontFamily="sans-serif">10m zone</text>
       <text x={w*0.98} y={zone - 4} textAnchor="end"
-        fill="rgba(255,255,255,0.4)" fontSize={LW*7} fontFamily="sans-serif">10m zone</text>
+        fill={FIELD_TEXT_ZONE} fontSize={LW*7} fontFamily="sans-serif">10m zone</text>
       {/* Centre dot */}
       <circle cx={w/2} cy={h/2} r={LW*2} fill={LINE} />
     </>
@@ -201,10 +209,10 @@ function FieldMini({ w, h, nh }: { w: number; h: number; nh: number }) {
   const goalD = nh * 0.028;   // visual goal depth
   return (
     <>
-      <rect width={w} height={h} fill="#1a6b3a" rx={3} />
+      <rect width={w} height={h} fill={FIELD_GREEN} rx={3} />
       {Array.from({ length: 6 }).map((_, i) => (
         <rect key={i} x={(i * w) / 6} y={0} width={w / 6} height={h}
-          fill={i % 2 === 0 ? 'rgba(0,0,0,0.06)' : 'transparent'} />
+          fill={i % 2 === 0 ? FIELD_STRIPE : 'transparent'} />
       ))}
       <rect x={1} y={1} width={w-2} height={h-2} fill="none" stroke={LINE} strokeWidth={LW*1.5} />
       {/* Centre cross */}
@@ -214,12 +222,12 @@ function FieldMini({ w, h, nh }: { w: number; h: number; nh: number }) {
       {/* 3 goals at TOP */}
       {goalCenters.map((cx, i) => (
         <rect key={`t${i}`} x={cx - goalW/2} y={0} width={goalW} height={goalD}
-          fill="rgba(255,255,255,0.25)" stroke={LINE} strokeWidth={LW*0.8} />
+          fill={FIELD_GOAL_FILL_MINI} stroke={LINE} strokeWidth={LW*0.8} />
       ))}
       {/* 3 goals at BOTTOM */}
       {goalCenters.map((cx, i) => (
         <rect key={`b${i}`} x={cx - goalW/2} y={h - goalD} width={goalW} height={goalD}
-          fill="rgba(255,255,255,0.25)" stroke={LINE} strokeWidth={LW*0.8} />
+          fill={FIELD_GOAL_FILL_MINI} stroke={LINE} strokeWidth={LW*0.8} />
       ))}
     </>
   );
@@ -272,30 +280,30 @@ function PositionDropZone({
   const foPx  = r * 2 + 12;
 
   const fill = isDragging
-    ? 'rgba(255,255,255,0.06)'
+    ? CHIP_DRAGGING_FILL
     : isSelected
-    ? '#1565c0'
+    ? CHIP_FILL
     : isOver
-    ? 'rgba(96,165,250,0.55)'
+    ? CHIP_DROP_HOVER
     : isSubstitutionTarget
-    ? '#ff6b35'
+    ? CHIP_SUB_TARGET
     : player
-    ? '#1565c0'
+    ? CHIP_FILL
     : isPreferredPosition
-    ? 'rgba(13,58,140,0.75)'
-    : 'rgba(255,255,255,0.28)';
+    ? CHIP_PREFERRED_FILL
+    : CHIP_EMPTY_FILL;
 
   const stroke = isSelected
-    ? '#93c5fd'
+    ? CHIP_STROKE
     : isOver
-    ? '#93c5fd'
+    ? CHIP_STROKE
     : isSubstitutionTarget
-    ? '#ff6b35'
+    ? CHIP_SUB_TARGET
     : isPreferredPosition
-    ? '#93c5fd'
+    ? CHIP_STROKE
     : player
-    ? '#93c5fd'
-    : 'rgba(255,255,255,0.35)';
+    ? CHIP_STROKE
+    : CHIP_EMPTY_STROKE;
 
   const strokeW = isSelected || isOver || isSubstitutionTarget ? 3
     : isPreferredPosition ? 2.5
@@ -306,7 +314,7 @@ function PositionDropZone({
       {isSelected && (
         <circle cx={cx} cy={cy} r={r + 4}
           fill="none"
-          stroke="#93c5fd" strokeWidth={6} opacity={0.35}
+          stroke={CHIP_GLOW_STROKE} strokeWidth={6} opacity={0.35}
           filter="url(#glow-selected)"
         />
       )}
@@ -318,13 +326,13 @@ function PositionDropZone({
       {/* Preferred ring on occupied positions — hide during drag */}
       {isPreferredPosition && (
         <circle cx={cx} cy={cy} r={r + 5}
-          fill="none" stroke="#93c5fd" strokeWidth={2} strokeDasharray="6 3" opacity={0.9} />
+          fill="none" stroke={CHIP_STROKE} strokeWidth={2} strokeDasharray="6 3" opacity={0.9} />
       )}
       {/* Substitution count badge, matching the bench pattern in a single badge */}
       {subCount > 0 && player && (
         <>
           <circle cx={cx + r * 0.72} cy={cy - r * 0.72} r={r * 0.48}
-            fill="#0d3a8c" stroke="#60a5fa" strokeWidth={1.5} />
+            fill={CHIP_BADGE_FILL} stroke={CHIP_BADGE_STROKE} strokeWidth={1.5} />
           <text x={cx + r * 0.72} y={cy - r * 0.72}
             textAnchor="middle" dominantBaseline="middle"
             fill="white" fontSize={r * 0.3} fontWeight="bold"
@@ -338,7 +346,7 @@ function PositionDropZone({
         renderFieldPlayerLabel({ name: player.name, cx, cy, fontSize })
       ) : (
         <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
-          fill={isPreferredPosition ? '#93c5fd' : 'rgba(255,255,255,0.6)'}
+          fill={isPreferredPosition ? CHIP_STROKE : CHIP_EMPTY_LABEL}
           fontSize={fontSize} fontWeight="bold"
           style={{ pointerEvents: 'none', userSelect: 'none' }}>
           {config.label}
