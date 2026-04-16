@@ -52,10 +52,13 @@ interface BenchChipProps {
   isDragging: boolean;
   isSelected?: boolean;
   isAdvisorTarget?: boolean;
+  isInjured?: boolean;
+  onToggleInjury?: () => void;
   onClick?: () => void;
 }
 
-function BenchChip({ player, subCount, subbedOff, benchTime, isDragging, isSelected, isAdvisorTarget, onClick }: BenchChipProps) {
+function BenchChip({ player, subCount, subbedOff, benchTime, isDragging, isSelected, isAdvisorTarget, isInjured, onToggleInjury, onClick }: BenchChipProps) {
+  const showInjuryBtn = isSelected && onToggleInjury;
   return (
     <BenchPlayerDropTarget
       dropId={`matchday-bench-drop-${player.id}`}
@@ -63,6 +66,7 @@ function BenchChip({ player, subCount, subbedOff, benchTime, isDragging, isSelec
       isSelected={isSelected}
       isSubbedOff={subbedOff}
       isAdvisorTarget={isAdvisorTarget}
+      isInjured={isInjured}
       onClick={onClick}
     >
       <PlayerChip
@@ -71,8 +75,23 @@ function BenchChip({ player, subCount, subbedOff, benchTime, isDragging, isSelec
         size="medium"
         isOnField={false}
         subCount={subCount}
+        isInjured={isInjured}
+        disabled={isInjured}
       />
-      {!isDragging && <span className="bench-timer-badge">{formatTime(benchTime)}</span>}
+      {!isDragging && !isInjured && <span className="bench-timer-badge">{formatTime(benchTime)}</span>}
+      {showInjuryBtn && (
+        <button
+          className="bench-injury-btn"
+          onClick={(e) => { e.stopPropagation(); onToggleInjury!(); }}
+          title={isInjured ? 'Blessure opheffen' : 'Geblesseerd markeren'}
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+            <circle cx="12" cy="12" r="10" fill="white"/>
+            <rect x="10.5" y="6" width="3" height="12" rx="1.5" fill="#dc2626"/>
+            <rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="#dc2626"/>
+          </svg>
+        </button>
+      )}
     </BenchPlayerDropTarget>
   );
 }
@@ -143,9 +162,14 @@ export function MatchDay() {
     }
   });
 
+  const injuredIds = new Set(currentMatch.injuredPlayerIds ?? []);
+
   const benchPlayers = players
     .filter((p) => p.available && !onFieldIds.has(p.id))
     .sort((a, b) => (subCounts.get(a.id) ?? 0) - (subCounts.get(b.id) ?? 0));
+
+  const activeBenchPlayers  = benchPlayers.filter((p) => !injuredIds.has(p.id));
+  const injuredBenchPlayers = benchPlayers.filter((p) => injuredIds.has(p.id));
   const activePlayer = activePlayerId ? players.find((p) => p.id === activePlayerId) ?? null : null;
 
   // Stable ID string: only changes when the SET of bench players changes,
@@ -188,9 +212,16 @@ export function MatchDay() {
   const getBenchTime = (playerId: string) =>
     Math.max(0, currentSeconds - (benchEntryMap[playerId] ?? 0));
 
+  function handleToggleInjury(playerId: string) {
+    dispatch({ type: 'TOGGLE_PLAYER_INJURED', payload: playerId });
+    if (selectedPlayer?.type === 'bench' && selectedPlayer.playerId === playerId) {
+      setSelectedPlayer(null);
+    }
+  }
+
   // ── Substitution Advisor (field highlight only) ──
   const advisorInput = useMemo<AdvisorInput | null>(() => {
-    if (!benchPlayers.length) return null;
+    if (!activeBenchPlayers.length) return null;
     const fieldEntries = currentMatch.lineup
       .filter((e) => e.playerId && onFieldIds.has(e.playerId))
       .map((e) => {
@@ -213,7 +244,7 @@ export function MatchDay() {
       .filter((e) => e.positionLabel);
     if (!fieldEntries.length && !emptyPositions.length) return null;
     return {
-      benchPlayers: benchPlayers.map((p) => ({
+      benchPlayers: activeBenchPlayers.map((p) => ({
         id: p.id, name: p.name, jerseyNumber: p.jerseyNumber,
         preferredPositions: p.preferredPositions as string[],
       })),
@@ -224,7 +255,7 @@ export function MatchDay() {
       subCounts,
       benchEntryMap,
     };
-  }, [benchPlayers, currentMatch.lineup, currentMatch.substitutions, currentSeconds, subCounts, benchEntryMap, positions, players, onFieldIds]);
+  }, [activeBenchPlayers, currentMatch.lineup, currentMatch.substitutions, currentSeconds, subCounts, benchEntryMap, positions, players, onFieldIds]);
 
   // When a bench player is selected or dragged, find the best field position for the pulse highlight
   const advisorPlayerId = selectedPlayer?.type === 'bench'
@@ -604,7 +635,7 @@ export function MatchDay() {
               </div>
               <div className="match-day__bench-players">
                 {isDraggingFieldPlayer && <BenchEmptySlot dropId="matchday-bench-empty" />}
-                {benchPlayers.map((p) => (
+                {activeBenchPlayers.map((p) => (
                   <BenchChip
                     key={p.id}
                     player={p}
@@ -614,9 +645,28 @@ export function MatchDay() {
                     isDragging={activePlayerId === p.id}
                     isSelected={selectedPlayer?.type === 'bench' && selectedPlayer.playerId === p.id}
                     isAdvisorTarget={advisorBenchPlayerId === p.id}
+                    onToggleInjury={!isViewer ? () => handleToggleInjury(p.id) : undefined}
                     onClick={!isViewer ? () => handleBenchClick(p.id) : undefined}
                   />
                 ))}
+                {injuredBenchPlayers.length > 0 && (
+                  <>
+                    {injuredBenchPlayers.map((p) => (
+                      <BenchChip
+                        key={p.id}
+                        player={p}
+                        subCount={subCounts.get(p.id) ?? 0}
+                        subbedOff={substitutedOffIds.has(p.id)}
+                        benchTime={getBenchTime(p.id)}
+                        isDragging={false}
+                        isSelected={selectedPlayer?.type === 'bench' && selectedPlayer.playerId === p.id}
+                        isInjured
+                        onToggleInjury={!isViewer ? () => handleToggleInjury(p.id) : undefined}
+                        onClick={!isViewer ? () => handleBenchClick(p.id) : undefined}
+                      />
+                    ))}
+                  </>
+                )}
                 {benchPlayers.length === 0 && !isDraggingFieldPlayer && (
                   <p className="match-day__bench-empty">Geen bankspelers</p>
                 )}

@@ -40,6 +40,7 @@ function createDefaultMatch(): Match {
     breakDuration: 10 * 60,
     breakSeconds: 0,
     breakStartedAt: null,
+    injuredPlayerIds: [],
   };
 }
 
@@ -72,6 +73,7 @@ function loadState(): AppState {
     if (parsed.currentMatch.breakDuration == null) parsed.currentMatch.breakDuration = 10 * 60;
     if (parsed.currentMatch.breakSeconds == null) parsed.currentMatch.breakSeconds = 0;
     if (parsed.currentMatch.breakStartedAt == null) parsed.currentMatch.breakStartedAt = null;
+    if (!parsed.currentMatch.injuredPlayerIds) parsed.currentMatch.injuredPlayerIds = [];
     // Migrate old field sizes / player counts to KNHB format
     const fs = parsed.currentMatch.fieldSize as string;
     if (fs === 'quarter') {
@@ -527,6 +529,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
 
+    case 'TOGGLE_PLAYER_INJURED': {
+      const current = state.currentMatch.injuredPlayerIds ?? [];
+      const injuredPlayerIds = current.includes(action.payload)
+        ? current.filter((id) => id !== action.payload)
+        : [...current, action.payload];
+      return { ...state, currentMatch: { ...state.currentMatch, injuredPlayerIds } };
+    }
+
     case 'RESET_TO_DEFAULT':
       return { ...defaultState, activeTab: state.activeTab, currentMatch: createDefaultMatch() };
 
@@ -537,9 +547,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         players: action.payload.players,
         currentMatch: {
           ...m,
-          lineup:        m.lineup        ?? state.currentMatch.lineup,
-          substitutions: m.substitutions ?? [],
-          shootouts:     m.shootouts     ?? [],
+          lineup:           m.lineup           ?? state.currentMatch.lineup,
+          substitutions:    m.substitutions    ?? [],
+          shootouts:        m.shootouts        ?? [],
+          injuredPlayerIds: m.injuredPlayerIds ?? [],
         },
       };
     }

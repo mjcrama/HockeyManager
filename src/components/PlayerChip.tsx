@@ -9,6 +9,8 @@ interface PlayerChipProps {
   isOnField?: boolean;
   isOverlay?: boolean;
   subCount?: number;
+  isInjured?: boolean;
+  disabled?: boolean;
   onClick?: () => void;
 }
 
@@ -19,11 +21,14 @@ export function PlayerChip({
   isOnField = false,
   isOverlay = false,
   subCount = 0,
+  isInjured = false,
+  disabled = false,
   onClick,
 }: PlayerChipProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: draggableId,
     data: { playerId: player.id, isOnField },
+    disabled,
   });
 
   const style: React.CSSProperties = {
@@ -44,9 +49,17 @@ export function PlayerChip({
       ].filter(Boolean).join(' ')}>
         <span className="player-chip__number">#{player.jerseyNumber}</span>
         <span className="player-chip__name">{player.name}</span>
-        {subCount > 0 && (
+        {isInjured ? (
+          <span className="player-chip__injury-badge">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+              <circle cx="12" cy="12" r="10" fill="white"/>
+              <rect x="10.5" y="6" width="3" height="12" rx="1.5" fill="#dc2626"/>
+              <rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="#dc2626"/>
+            </svg>
+          </span>
+        ) : subCount > 0 ? (
           <span className="player-chip__sub-count">{subCount}↕</span>
-        )}
+        ) : null}
       </div>
     );
   }
@@ -62,11 +75,19 @@ export function PlayerChip({
     >
       <span className="player-chip__number">#{player.jerseyNumber}</span>
       <span className="player-chip__name">{player.name}</span>
-      {subCount > 0 && (
+      {isInjured ? (
+        <span className="player-chip__injury-badge">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+            <circle cx="12" cy="12" r="10" fill="white"/>
+            <rect x="10.5" y="6" width="3" height="12" rx="1.5" fill="#dc2626"/>
+            <rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="#dc2626"/>
+          </svg>
+        </span>
+      ) : subCount > 0 ? (
         <span className="player-chip__sub-count" title={`${subCount} substitution${subCount > 1 ? 's' : ''}`}>
           {subCount}↕
         </span>
-      )}
+      ) : null}
     </div>
   );
 }

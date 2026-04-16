@@ -91,6 +91,7 @@ export interface Match {
   breakDuration: number;     // seconds
   breakSeconds: number;      // accumulated break seconds when paused
   breakStartedAt: number | null;
+  injuredPlayerIds: string[];
 }
 
 export interface AppState {
@@ -134,4 +135,5 @@ export type AppAction =
   | { type: 'RESUME_BREAK' }
   | { type: 'START_NEXT_PERIOD' }
   | { type: 'LOAD_REMOTE_STATE'; payload: Pick<AppState, 'players' | 'currentMatch'> }
+  | { type: 'TOGGLE_PLAYER_INJURED'; payload: string }
   | { type: 'RESET_TO_DEFAULT' };
