@@ -2224,8 +2224,10 @@ body {
   box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.20);
 }
 
-.shootout-row--unavailable {
-  opacity: 0.45;
+.shootout-row--unavailable .shootout-row__info,
+.shootout-row--unavailable .shootout-row__stats,
+.shootout-row--unavailable .shootout-row__dots {
+  opacity: 0.30;
 }
 
 .shootout-row__info {

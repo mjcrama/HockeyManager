@@ -45,8 +45,13 @@ export function ShootoutTracker() {
     ? (currentMatch.lineup.find((e) => e.positionId === gkPositionId)?.playerId ?? null)
     : null;
 
-  // Only available non-GK players are eligible for the picker
-  const availablePlayers = players.filter((p) => p.available && p.id !== gkPlayerId);
+  const injuredIds = new Set(currentMatch.injuredPlayerIds ?? []);
+  const fieldPlayerIds = new Set(currentMatch.lineup.map((e) => e.playerId).filter(Boolean) as string[]);
+
+  // Only field players (non-GK, non-injured, available) are eligible for the picker
+  const availablePlayers = players.filter((p) =>
+    p.available && fieldPlayerIds.has(p.id) && !injuredIds.has(p.id) && p.id !== gkPlayerId
+  );
   const nextShooter      = nextShooterId ? players.find((p) => p.id === nextShooterId) ?? null : null;
 
   const totalAttempts = shootouts.length;
@@ -205,15 +210,18 @@ export function ShootoutTracker() {
             const s      = stats(player);
             const missed = s.attempts - s.goals;
             const isNext = player.id === nextShooterId;
-            const isEligible = player.available && s.attempts === minAttempts;
+            const isInjured = injuredIds.has(player.id);
+            const isGk = player.id === gkPlayerId;
+            const isEligible = player.available && !isInjured && s.attempts === minAttempts;
+            const dimmed = !player.available || isInjured || isGk;
 
             return (
               <div
                 key={player.id}
                 className={[
                   'shootout-row',
-                  isNext            ? 'shootout-row--next'        : '',
-                  !player.available ? 'shootout-row--unavailable' : '',
+                  isNext   ? 'shootout-row--next'        : '',
+                  dimmed   ? 'shootout-row--unavailable' : '',
                 ].filter(Boolean).join(' ')}
               >
                 <div className="shootout-row__info">
