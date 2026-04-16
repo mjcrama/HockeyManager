@@ -310,6 +310,9 @@ export function MatchDay() {
       setSelectedPlayer(null);
       return;
     }
+    if (intent.type === 'no-op') {
+      return;
+    }
     if (intent.type === 'swap-fields') {
       // Field → Field: swap positions (no substitution)
       const newLineup = currentMatch.lineup.map((e) => {
@@ -624,6 +627,7 @@ export function MatchDay() {
               selectedPositionId={selectedPlayer?.type === 'field' ? selectedPlayer.positionId : null}
               onPositionClick={!isViewer ? handlePositionClick : undefined}
               onTacticsClick={!isViewer ? () => setTacticsOpen(true) : undefined}
+              onBackgroundClick={!isViewer ? () => setSelectedPlayer(null) : undefined}
               advisorPositionId={advisorPositionId}
             />
           </div>
@@ -633,7 +637,7 @@ export function MatchDay() {
               <div className="match-day__bench-header">
                 <h3 className="match-day__bench-title">Bank ({benchPlayers.length})</h3>
               </div>
-              <div className="match-day__bench-players">
+              <div className="match-day__bench-players" onClick={!isViewer ? () => setSelectedPlayer(null) : undefined}>
                 {isDraggingFieldPlayer && <BenchEmptySlot dropId="matchday-bench-empty" />}
                 {activeBenchPlayers.map((p) => (
                   <BenchChip

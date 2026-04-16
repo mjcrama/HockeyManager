@@ -374,7 +374,7 @@ function PositionDropZone({
           }}
           {...(!disableDrag && entry.playerId ? listeners : {})}
           {...(!disableDrag && entry.playerId ? attributes : {})}
-          onClick={onClick}
+          onClick={onClick ? (e: React.MouseEvent) => { e.stopPropagation(); onClick(); } : undefined}
         />
       </foreignObject>
     </g>
@@ -396,6 +396,7 @@ interface FieldCanvasProps {
   onPositionClick?: (positionId: string, playerId: string | null) => void;
   onTacticsClick?: () => void;
   advisorPositionId?: string | null;
+  onBackgroundClick?: () => void;
 }
 
 export function FieldCanvas({
@@ -409,6 +410,7 @@ export function FieldCanvas({
   onPositionClick,
   onTacticsClick,
   advisorPositionId = null,
+  onBackgroundClick,
 }: FieldCanvasProps) {
   const { w: baseFW, h: baseFH } = VIEWBOX[fieldSize];
   const FW = baseFW;
@@ -440,7 +442,8 @@ export function FieldCanvas({
         </button>
       )}
       <svg viewBox={`0 0 ${FW} ${FH}`} preserveAspectRatio="xMidYMid meet"
-        className="field-canvas__svg" style={{ width: '100%' }}>
+        className="field-canvas__svg" style={{ width: '100%' }}
+        onClick={onBackgroundClick}>
         <defs>
           <filter id="glow-selected" x="-40%" y="-40%" width="180%" height="180%">
             <feGaussianBlur stdDeviation="6" result="blur" />

@@ -117,6 +117,9 @@ export function FieldSetup() {
       setSelectedPlayer(null);
       return;
     }
+    if (intent.type === 'no-op') {
+      return;
+    }
     if (intent.type === 'swap-fields') {
       const newLineup = currentMatch.lineup.map((e) => {
         if (e.positionId === positionId) return { ...e, playerId: intent.sourcePlayerId };
@@ -297,13 +300,14 @@ export function FieldSetup() {
               preferredPositionLabels={preferredPositionLabels}
               selectedPositionId={selectedPlayer?.type === 'field' ? selectedPlayer.positionId : null}
               onPositionClick={handlePositionClick}
+              onBackgroundClick={() => setSelectedPlayer(null)}
             />
           </div>
 
           <div className="field-setup__sidebar">
             <div className="bench">
               <h3 className="bench__title">Bank ({benchPlayers.length})</h3>
-              <div className="bench__players">
+              <div className="bench__players" onClick={() => setSelectedPlayer(null)}>
                 {isDraggingFieldPlayer && <BenchEmptySlot dropId="bench-empty" />}
                 {benchPlayers.length === 0 && !isDraggingFieldPlayer && (
                   <p className="bench__empty">Geen beschikbare spelers</p>

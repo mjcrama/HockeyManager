@@ -6,6 +6,7 @@ export type SelectedPlayer =
 export type PositionClickIntent =
   | { type: 'select-field'; selection: Exclude<SelectedPlayer, null> }
   | { type: 'clear-selection' }
+  | { type: 'no-op' }
   | { type: 'swap-fields'; sourcePositionId: string; sourcePlayerId: string | null }
   | { type: 'bench-to-position'; benchPlayerId: string };
 
@@ -15,11 +16,16 @@ export function getPositionClickIntent(
   playerId: string | null,
 ): PositionClickIntent {
   if (!selectedPlayer) {
+    if (playerId === null) return { type: 'no-op' };
     return { type: 'select-field', selection: { type: 'field', positionId, playerId } };
   }
 
   if (selectedPlayer.type === 'field' && selectedPlayer.positionId === positionId) {
     return { type: 'clear-selection' };
+  }
+
+  if (playerId === null) {
+    return { type: 'no-op' };
   }
 
   if (selectedPlayer.type === 'field') {

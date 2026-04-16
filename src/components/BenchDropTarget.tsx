@@ -1,3 +1,4 @@
+import React from 'react';
 import type { ReactNode } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 
@@ -55,7 +56,7 @@ export function BenchPlayerDropTarget({
         isAdvisorTarget && !isSelected ? 'bench-chip-wrapper--advisor' : '',
         isInjured ? 'bench-chip-wrapper--injured' : '',
       ].filter(Boolean).join(' ')}
-      onClick={onClick}
+      onClick={onClick ? (e: React.MouseEvent) => { e.stopPropagation(); onClick(); } : undefined}
     >
       {children}
     </div>
