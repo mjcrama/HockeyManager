@@ -38,3 +38,15 @@ export const ARROW_COLOR = '#fbbf24';
 export const ARROW_SELECTED = '#fde68a';
 export const ARROW_DELETE_FILL = '#dc2626';
 export const ARROW_DELETE_STROKE = '#fecaca';
+
+// ── Tactics opponent chips ──
+export const OPPONENT_FILL = '#dc2626';
+export const OPPONENT_STROKE = '#fca5a5';
+
+// ── Tactics zones / free line ──
+export const SHAPE_LINE_COLOR  = 'rgba(255,255,255,0.85)';
+export const SHAPE_LINE_SEL    = 'rgba(255,255,255,1)';
+export const SHAPE_ZONE_STROKE = 'rgba(255,255,255,0.75)';
+export const SHAPE_ZONE_SEL    = 'rgba(255,255,255,1)';
+export const SHAPE_ZONE_FILL   = 'rgba(255,255,255,0.07)';
+export const SHAPE_ZONE_FILL_SEL = 'rgba(255,255,255,0.16)';

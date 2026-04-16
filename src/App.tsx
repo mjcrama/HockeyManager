@@ -90,8 +90,10 @@ function ShareBar() {
 
   // Force modal open when team is deleted
   React.useEffect(() => { if (teamDeleted) setOpen(true); }, [teamDeleted]);
-  // Keep name input in sync
-  React.useEffect(() => { setNameInput(teamName); }, [teamName]);
+  // Keep name input in sync; fall back to generated display name when team has no stored name
+  React.useEffect(() => {
+    setNameInput(teamName || allTeams.find((t) => t.id === teamId)?.name || '');
+  }, [teamName, teamId, allTeams]);
 
   function copy(type: 'coach' | 'viewer') {
     const url = type === 'coach' ? getCoachUrl() : getViewerUrl();
@@ -211,7 +213,6 @@ function ShareBar() {
                       onChange={(e) => setNameInput(e.target.value)}
                       onBlur={saveName}
                       onKeyDown={(e) => { if (e.key === 'Enter') { saveName(); e.currentTarget.blur(); } }}
-                      autoFocus
                     />
                     <button
                       className={`team-switcher__chevron${showTeams ? ' team-switcher__chevron--open' : ''}`}

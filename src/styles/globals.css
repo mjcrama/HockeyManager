@@ -2877,6 +2877,13 @@ body {
   gap: 8px;
 }
 
+.tactics-board__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+}
+
 .tactics-board__field {
   flex: 1;
   min-height: 0;
@@ -2893,6 +2900,88 @@ body {
   height: 100%;
   touch-action: none;
   user-select: none;
+}
+
+/* Tool selector */
+.tactics-board__tools {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 8px;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  width: 84px;
+  flex-shrink: 0;
+  align-items: stretch;
+}
+
+.tactics-board__tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 6px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.tactics-board__tool--active {
+  background: rgba(96, 165, 250, 0.12);
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.tactics-board__tools-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 4px 0;
+  width: 100%;
+}
+
+/* Mobile: tool selector moves below the field */
+@media (max-width: 600px) {
+  .tactics-board__content {
+    flex-direction: column;
+  }
+
+  .tactics-board__tools {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+    padding: 6px 12px;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .tactics-board__tools-divider {
+    display: none;
+  }
+
+  .tactics-board__tool {
+    flex-direction: row;
+    width: auto;
+    flex: 0 1 auto;
+    padding: 7px 10px;
+    gap: 0;
+    font-size: 11px;
+    justify-content: center;
+  }
+
+  .tactics-board__tool span {
+    display: none;
+  }
 }
 
 /* ===== SUBSTITUTION ADVISOR ===== */
