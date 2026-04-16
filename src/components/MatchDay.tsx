@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useMatchTimer, formatTime } from '../hooks/useMatchTimer';
 import { Modal } from './Modal';
-import { getBestPositionForBenchPlayer } from '../utils/substitutionAdvisor';
+import { getBestPositionForBenchPlayer, getBestBenchPlayerForFieldPlayer } from '../utils/substitutionAdvisor';
 import type { AdvisorInput } from '../utils/substitutionAdvisor';
 import {
   DndContext,
@@ -51,16 +51,18 @@ interface BenchChipProps {
   benchTime: number;
   isDragging: boolean;
   isSelected?: boolean;
+  isAdvisorTarget?: boolean;
   onClick?: () => void;
 }
 
-function BenchChip({ player, subCount, subbedOff, benchTime, isDragging, isSelected, onClick }: BenchChipProps) {
+function BenchChip({ player, subCount, subbedOff, benchTime, isDragging, isSelected, isAdvisorTarget, onClick }: BenchChipProps) {
   return (
     <BenchPlayerDropTarget
       dropId={`matchday-bench-drop-${player.id}`}
       benchPlayerId={player.id}
       isSelected={isSelected}
       isSubbedOff={subbedOff}
+      isAdvisorTarget={isAdvisorTarget}
       onClick={onClick}
     >
       <PlayerChip
@@ -202,13 +204,21 @@ export function MatchDay() {
           playerJersey: pl?.jerseyNumber ?? 0,
         };
       });
-    if (!fieldEntries.length) return null;
+    const emptyPositions = currentMatch.lineup
+      .filter((e) => !e.playerId)
+      .map((e) => {
+        const pos = positions.find((p) => p.id === e.positionId);
+        return { positionId: e.positionId, positionLabel: pos?.label ?? '' };
+      })
+      .filter((e) => e.positionLabel);
+    if (!fieldEntries.length && !emptyPositions.length) return null;
     return {
       benchPlayers: benchPlayers.map((p) => ({
         id: p.id, name: p.name, jerseyNumber: p.jerseyNumber,
         preferredPositions: p.preferredPositions as string[],
       })),
       fieldEntries,
+      emptyPositions,
       currentSeconds,
       substitutions: currentMatch.substitutions,
       subCounts,
@@ -236,6 +246,20 @@ export function MatchDay() {
 
   // Show the empty bench slot when a field player is being dragged
   const isDraggingFieldPlayer = activePlayerId !== null && onFieldIds.has(activePlayerId);
+
+  // When a field player is selected or dragged, find the best bench replacement
+  const advisorFieldPlayerId: string | null = useMemo(() => {
+    if (selectedPlayer?.type === 'field') {
+      return currentMatch.lineup.find((e) => e.positionId === selectedPlayer.positionId)?.playerId ?? null;
+    }
+    if (isDraggingFieldPlayer && activePlayerId) return activePlayerId;
+    return null;
+  }, [selectedPlayer, isDraggingFieldPlayer, activePlayerId, currentMatch.lineup]);
+
+  const advisorBenchPlayerId = useMemo(() => {
+    if (!advisorFieldPlayerId || !advisorInput) return null;
+    return getBestBenchPlayerForFieldPlayer(advisorFieldPlayerId, advisorInput);
+  }, [advisorFieldPlayerId, advisorInput]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     if (isViewer) return;
@@ -589,6 +613,7 @@ export function MatchDay() {
                     benchTime={getBenchTime(p.id)}
                     isDragging={activePlayerId === p.id}
                     isSelected={selectedPlayer?.type === 'bench' && selectedPlayer.playerId === p.id}
+                    isAdvisorTarget={advisorBenchPlayerId === p.id}
                     onClick={!isViewer ? () => handleBenchClick(p.id) : undefined}
                   />
                 ))}

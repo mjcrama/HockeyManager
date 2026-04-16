@@ -24,6 +24,7 @@ interface BenchPlayerDropTargetProps {
   benchPlayerId: string;
   isSelected?: boolean;
   isSubbedOff?: boolean;
+  isAdvisorTarget?: boolean;
   onClick?: () => void;
   children: ReactNode;
 }
@@ -33,6 +34,7 @@ export function BenchPlayerDropTarget({
   benchPlayerId,
   isSelected = false,
   isSubbedOff = false,
+  isAdvisorTarget = false,
   onClick,
   children,
 }: BenchPlayerDropTargetProps) {
@@ -48,6 +50,7 @@ export function BenchPlayerDropTarget({
         isSubbedOff ? 'bench-chip-wrapper bench-chip-wrapper--subbed' : 'bench-chip-wrapper',
         isOver ? 'bench-chip-wrapper--drop-over' : '',
         isSelected ? 'bench-chip-wrapper--selected' : '',
+        isAdvisorTarget && !isSelected ? 'bench-chip-wrapper--advisor' : '',
       ].filter(Boolean).join(' ')}
       onClick={onClick}
     >
