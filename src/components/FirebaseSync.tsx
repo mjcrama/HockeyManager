@@ -8,6 +8,23 @@ const DEBOUNCE_MS = 400;
 // Safety: release write lock after this many ms if no ACK received (e.g. offline)
 const LOCK_TIMEOUT_MS = 8000;
 
+/** Normalise Firebase round-trip quirks before comparing snapshots.
+ *  Firebase omits keys whose value is an empty array (stores as null / missing),
+ *  so we replace null with [] for known array fields so the ACK comparison works. */
+function normaliseMatch(m: Record<string, unknown>): Record<string, unknown> {
+  const arrayFields = ['lineup', 'substitutions', 'shootouts', 'injuredPlayerIds'];
+  const out: Record<string, unknown> = { ...m };
+  for (const f of arrayFields) {
+    if (out[f] == null) out[f] = [];
+  }
+  return out;
+}
+
+function serialise(players: unknown, currentMatch: unknown): string {
+  const m = normaliseMatch(currentMatch as Record<string, unknown>);
+  return JSON.stringify({ p: players, m });
+}
+
 export function FirebaseSync() {
   const { teamId, deviceId, isViewer, allTeams, switchTeam, _notifyTeamDeleted } = useTeam();
   const state    = useAppState();
@@ -105,7 +122,7 @@ export function FirebaseSync() {
         return;
       }
 
-      const incoming = JSON.stringify({ p: data.state.players, m: data.state.currentMatch });
+      const incoming = serialise(data.state.players, data.state.currentMatch);
 
       if (!isViewer && !isSwitchingRef.current) {
         if (pendingWriteRef.current !== null) {
@@ -152,7 +169,7 @@ export function FirebaseSync() {
     if (!hasReceivedFirstUpdateRef.current) return;
     if (isSwitchingRef.current) return;
 
-    const current = JSON.stringify({ p: state.players, m: state.currentMatch });
+    const current = serialise(state.players, state.currentMatch);
     if (current === lastReceivedRef.current) return;
 
     // Lock reads immediately — don't wait for the debounce to fire
@@ -162,7 +179,7 @@ export function FirebaseSync() {
     writeTimer.current = setTimeout(() => {
       writeTimer.current = null;
       // Update pendingWriteRef to what we actually send (state may have changed during debounce)
-      const toWrite = JSON.stringify({ p: state.players, m: state.currentMatch });
+      const toWrite = serialise(state.players, state.currentMatch);
       setWriteLock(toWrite);
       writeTeamState(teamId, state.players, state.currentMatch);
     }, DEBOUNCE_MS);
