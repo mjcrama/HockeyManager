@@ -3,6 +3,7 @@ import { useScrollLock } from './hooks/useScrollLock';
 import { AppProvider, useAppState, useAppDispatch } from './context/AppContext';
 import { TeamProvider, useTeam } from './context/TeamContext';
 import { FirebaseSync } from './components/FirebaseSync';
+import { UpdateBanner } from './components/UpdateBanner';
 import { Home } from './components/Home';
 const PlayerManager   = React.lazy(() => import('./components/PlayerManager').then((m) => ({ default: m.PlayerManager })));
 const FieldSetup      = React.lazy(() => import('./components/FieldSetup').then((m) => ({ default: m.FieldSetup })));
@@ -408,6 +409,7 @@ function AppInner() {
         </React.Suspense>
       </main>
       <FirebaseSync />
+      <UpdateBanner />
     </div>
   );
 }
