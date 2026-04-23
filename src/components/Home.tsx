@@ -1,10 +1,7 @@
-import { useState, useRef } from 'react';
 import { useAppDispatch } from '../context/AppContext';
 import type { AppState } from '../types';
 
 declare const __APP_VERSION__: string;
-
-const STORAGE_KEY = 'hockey-manager-state';
 
 type Tab = AppState['activeTab'];
 
@@ -17,39 +14,6 @@ const FEATURES: { tab: Exclude<Tab, 'home'>; label: string; description: string 
 
 export function Home() {
   const dispatch = useAppDispatch();
-  const [importError, setImportError] = useState(false);
-  const importRef = useRef<HTMLInputElement>(null);
-
-  function handleExport() {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const blob = new Blob([raw], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'hockey-team.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const json = ev.target?.result as string;
-        JSON.parse(json);
-        localStorage.setItem(STORAGE_KEY, json);
-        window.location.reload();
-      } catch {
-        setImportError(true);
-        setTimeout(() => setImportError(false), 3000);
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  }
 
   return (
     <div className="home">
@@ -69,21 +33,6 @@ export function Home() {
             <span className="home__feature-desc">{f.description}</span>
           </button>
         ))}
-      </div>
-
-      <div className="home__data">
-        <h2 className="home__section-title">Team data</h2>
-        <p className="home__section-desc">Exporteer je team om een back-up te maken of te delen. Importeer een bestand om data te laden op dit apparaat.</p>
-        <div className="home__data-actions">
-          <button className="btn btn--secondary" onClick={handleExport}>
-            ↓ Exporteren
-          </button>
-          <button className="btn btn--secondary" onClick={() => importRef.current?.click()}>
-            ↑ Importeren
-          </button>
-          <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
-        </div>
-        {importError && <p className="home__import-error">Ongeldig bestand — probeer een geldig export bestand.</p>}
       </div>
 
       <div className="home__version">
