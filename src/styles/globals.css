@@ -591,6 +591,11 @@ body {
   background: var(--color-bg);
 }
 
+.app__loading {
+  flex: 1;
+  min-height: 200px;
+}
+
 /* ===== BUTTONS ===== */
 .btn {
   display: inline-flex;

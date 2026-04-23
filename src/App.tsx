@@ -4,10 +4,10 @@ import { AppProvider, useAppState, useAppDispatch } from './context/AppContext';
 import { TeamProvider, useTeam } from './context/TeamContext';
 import { FirebaseSync } from './components/FirebaseSync';
 import { Home } from './components/Home';
-import { PlayerManager } from './components/PlayerManager';
-import { FieldSetup } from './components/FieldSetup';
-import { MatchDay } from './components/MatchDay';
-import { ShootoutTracker } from './components/ShootoutTracker';
+const PlayerManager   = React.lazy(() => import('./components/PlayerManager').then((m) => ({ default: m.PlayerManager })));
+const FieldSetup      = React.lazy(() => import('./components/FieldSetup').then((m) => ({ default: m.FieldSetup })));
+const MatchDay        = React.lazy(() => import('./components/MatchDay').then((m) => ({ default: m.MatchDay })));
+const ShootoutTracker = React.lazy(() => import('./components/ShootoutTracker').then((m) => ({ default: m.ShootoutTracker })));
 import { OpstellingIcon, WedstrijdIcon } from './components/Icons';
 import type { AppState } from './types';
 
@@ -399,11 +399,13 @@ function AppInner() {
         <ShareBar />
       </header>
       <main className="app__content">
-        {visibleTab === 'home'     && <Home />}
-        {visibleTab === 'roster'   && <PlayerManager />}
-        {visibleTab === 'setup'    && <FieldSetup />}
-        {visibleTab === 'matchday' && <MatchDay />}
-        {visibleTab === 'shootout' && <ShootoutTracker />}
+        <React.Suspense fallback={<div className="app__loading" />}>
+          {visibleTab === 'home'     && <Home />}
+          {visibleTab === 'roster'   && <PlayerManager />}
+          {visibleTab === 'setup'    && <FieldSetup />}
+          {visibleTab === 'matchday' && <MatchDay />}
+          {visibleTab === 'shootout' && <ShootoutTracker />}
+        </React.Suspense>
       </main>
       <FirebaseSync />
     </div>
