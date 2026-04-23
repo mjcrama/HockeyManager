@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { useAppDispatch } from '../context/AppContext';
 import type { AppState } from '../types';
 
+declare const __APP_VERSION__: string;
+
 const STORAGE_KEY = 'hockey-manager-state';
 
 type Tab = AppState['activeTab'];
@@ -82,6 +84,16 @@ export function Home() {
           <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
         </div>
         {importError && <p className="home__import-error">Ongeldig bestand — probeer een geldig export bestand.</p>}
+      </div>
+
+      <div className="home__version">
+        <button
+          className="home__version-btn"
+          onClick={() => window.location.reload()}
+          title="Klik om de app te verversen"
+        >
+          v{__APP_VERSION__}
+        </button>
       </div>
     </div>
   );

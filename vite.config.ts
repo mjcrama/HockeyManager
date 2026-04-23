@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { readFileSync } from 'fs'
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
 // Maak een leesbare datum-tijd string: YYYYMMDD-HHMM
 const now = new Date();
@@ -11,6 +13,9 @@ const buildId = `${buildDate}-${buildTime}`;
 
 export default defineConfig({
   base: '/HockeyManager/',
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   plugins: [
     react(),
     VitePWA({

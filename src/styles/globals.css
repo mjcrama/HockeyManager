@@ -2507,6 +2507,26 @@ body {
   margin: 0;
 }
 
+.home__version {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.home__version-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition);
+}
+
+.home__version-btn:hover {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* ===== ROTATE OVERLAY (mobile landscape) ===== */
 .rotate-overlay {
   display: none;
