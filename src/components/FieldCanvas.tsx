@@ -19,7 +19,7 @@ import {
 
 // Viewbox per field size (proportional to real KNHB dimensions)
 // Full 91.4×55 → portrait 550×840  (ratio 0.655, real 0.602 — close enough)
-// 3/4  68×55   → portrait 550×700
+// 3/4  68×55   → portrait 550×700  (both goals, centre at h/2)
 // Half 55×45.7 → portrait 550×457  (ratio 45.7/55 = 0.831 → 550×457)
 // Small 43×25  → portrait 550×945  (ratio 43/25 = 1.72 → 550×946)
 // Mini 23×23   → square   600×600
@@ -99,12 +99,22 @@ function FieldFull({ w, h, nh }: { w: number; h: number; nh: number }) {
   );
 }
 
-// ── 3/4 field  68×55m — O11 9v9 — GK goal bottom, open centre-line at top ───
+// ── 3/4 field  68.55m×55m — O11 9v9 — GK goal bottom, open top at attacking 23m ─
+// Full field = 91.4m. 3/4 = 68.55m from GK goal to attacking team's 23m line.
+// Top boundary is open (no goal — attacking goal is another 22.85m beyond view).
+// All y-positions are % from TOP (SVG y increases downward):
+//   Centre line:     45.7 / 68.55 = 66.7% from bottom → y = 33.3% from top
+//   GK 23m line:     22.9 / 68.55 = 33.4% from bottom → y = 66.6% from top
+//   GK D-zone arc:   14.63/ 68.55 = 21.3% from bottom
+//   GK penalty spot:  6.4 / 68.55 =  9.3% from bottom → y = 90.7% from top
 function FieldThreeQuarter({ w, h, nh }: { w: number; h: number; nh: number }) {
-  const dR = nh * 0.18;
-  const dW = w * 0.62;
-  const gW = w * 0.2;
-  const gH = nh * 0.02;
+  const dR      = nh * 0.213;  // GK D-zone arc height
+  const dW      = w  * 0.62;   // D-zone width
+  const gW      = w  * 0.2;    // goal width
+  const gH      = nh * 0.02;   // goal depth
+  const centreY = nh * 0.333;  // centre line from top
+  const line23  = nh * 0.666;  // GK's 23m line from top
+  const pSpot   = nh * 0.907;  // GK penalty spot from top
   return (
     <>
       <rect width={w} height={h} fill={FIELD_GREEN} rx={3} />
@@ -113,17 +123,18 @@ function FieldThreeQuarter({ w, h, nh }: { w: number; h: number; nh: number }) {
           fill={i % 2 === 0 ? FIELD_STRIPE : 'transparent'} />
       ))}
       <rect x={1} y={1} width={w-2} height={h-2} fill="none" stroke={LINE} strokeWidth={LW*1.5} />
-      {/* Bottom D + goal (GK end) */}
+      {/* Centre line with label */}
+      <line x1={0} y1={centreY} x2={w} y2={centreY} stroke={LINE} strokeWidth={LW} />
+      <text x={w/2} y={centreY - LW*3} textAnchor="middle" fill={FIELD_TEXT_DIM}
+        fontSize={LW*7} fontFamily="sans-serif">MIDDELLIJN</text>
+      {/* GK's 23m line */}
+      <line x1={0} y1={line23} x2={w} y2={line23} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
+      {/* GK D-zone + goal + penalty spot */}
       <path d={`M${w/2-dW/2} ${h} Q${w/2} ${h-dR*1.45} ${w/2+dW/2} ${h}`}
         fill={FIELD_DZONE_FILL} stroke={LINE} strokeWidth={LW} />
       <rect x={w/2-gW/2} y={h-gH} width={gW} height={gH}
         fill={FIELD_GOAL_FILL} stroke={LINE} strokeWidth={LW*0.8} />
-      <circle cx={w/2} cy={h - nh*0.08} r={LW*1.8} fill={LINE} />
-      {/* 25-yard line — fixed distance from the GK end */}
-      <line x1={0} y1={h - nh*0.34} x2={w} y2={h - nh*0.34} stroke={LINE} strokeWidth={LW*0.7} strokeDasharray="8 6" />
-      {/* Centre-line of full field at top */}
-      <text x={w/2} y={nh*0.04} textAnchor="middle" fill={FIELD_TEXT_DIM}
-        fontSize={LW*8} fontFamily="sans-serif">MIDDELLIJN</text>
+      <circle cx={w/2} cy={pSpot} r={LW*1.8} fill={LINE} />
     </>
   );
 }
