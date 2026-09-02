@@ -117,6 +117,11 @@ body {
   box-shadow: 0 2px 16px rgba(0,0,0,0.5);
 }
 
+/* Fullscreen match mode: hide the nav header for more field space */
+.match-fullscreen .app__header {
+  display: none;
+}
+
 .app__logo {
   display: flex;
   align-items: center;
@@ -588,7 +593,7 @@ body {
 .app__content {
   flex: 1;
   overflow: auto;
-  padding: 24px;
+  padding: 16px;
   min-height: 0;
   background: var(--color-bg);
 }
@@ -1300,18 +1305,18 @@ body {
 .match-day {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   height: 100%;
 }
 
 .match-timer {
+  position: relative; /* needed for absolute drawer overlay */
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #080f20, #0d1838);
   border: 1px solid rgba(21, 101, 192, 0.4);
   border-radius: var(--radius-lg);
   box-shadow: 0 0 24px rgba(21, 101, 192, 0.15);
-  overflow: hidden;
 }
 
 /* Clickable timer bar */
@@ -1319,7 +1324,7 @@ body {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 10px 16px;
+  padding: 8px 12px;
   gap: 8px;
   background: transparent;
   border: none;
@@ -1336,6 +1341,65 @@ body {
   background: rgba(255, 255, 255, 0.04);
 }
 
+/* Bar score (home/away) */
+.match-timer__bar-score {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  align-items: center; /* center within the 1fr column by default */
+}
+
+.match-timer__bar-score--home {
+  align-items: center;
+}
+
+/* Away side: score centered in available space, gear pinned to the right */
+.match-timer__bar-score--away {
+  flex-direction: row;
+  align-items: center;
+}
+
+.match-timer__bar-score-inner {
+  flex: 1;               /* take remaining space so score is centered between time and gear */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.match-timer__bar-score-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.match-timer__bar-score-num {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+/* Bar center: period label + time */
+.match-timer__bar-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.match-timer__bar-period {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Viewer period label (kept for viewer bar layout) */
 .match-timer__period-label {
   font-size: 13px;
   font-weight: 600;
@@ -1372,20 +1436,41 @@ body {
 }
 
 .match-timer__gear {
-  min-height: 40px;
-  min-width: 40px;
+  min-height: 36px;
+  min-width: 36px;
   font-size: 18px;
-  justify-self: end;
+  flex-shrink: 0;
 }
 
-/* Collapsible controls drawer */
+/* Collapsible controls drawer — overlays the field content */
 .match-timer__drawer {
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #080f20, #0d1838);
+  border: 1px solid rgba(21, 101, 192, 0.4);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+  animation: drawer-slide-in 0.15s ease;
+}
+
+.match-timer__drawer-controls {
   display: flex;
   justify-content: center;
   gap: 8px;
-  padding: 8px 16px 10px;
+  padding: 10px 16px 8px;
+}
+
+.match-timer__drawer-scores {
+  display: flex;
+  justify-content: space-around;
+  padding: 12px 16px 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  animation: drawer-slide-in 0.15s ease;
 }
 
 @keyframes drawer-slide-in {
@@ -1696,6 +1781,83 @@ body {
   height: 1px;
   background: var(--color-border);
   margin: 4px 0;
+}
+
+.timer-settings__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timer-settings__section + .timer-settings__section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.timer-settings__section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-dim);
+}
+
+.timer-settings__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  cursor: pointer;
+  gap: 12px;
+}
+
+.timer-settings__toggle-label {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.timer-settings__toggle {
+  flex-shrink: 0;
+}
+
+.timer-settings__toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.timer-settings__toggle-track {
+  display: block;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+  position: relative;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.timer-settings__toggle--on .timer-settings__toggle-track {
+  background: var(--color-green);
+  border-color: var(--color-green);
+}
+
+.timer-settings__toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.timer-settings__toggle--on .timer-settings__toggle-thumb {
+  transform: translateX(20px);
+  background: #fff;
 }
 
 .timer-settings__reset-grid {

@@ -100,6 +100,7 @@ export function MatchDay() {
   const { players, currentMatch } = useAppState();
   const dispatch = useAppDispatch();
   const { isViewer } = useTeam();
+  const [fullscreen, setFullscreen] = useState(false);
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<SelectedPlayer>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -107,6 +108,12 @@ export function MatchDay() {
   const [tacticsOpen,  setTacticsOpen]  = useState(false);
   useScrollLock(tacticsOpen);
   const [benchEntryMap, setBenchEntryMap] = useState<Record<string, number>>({});
+
+  // Toggle fullscreen mode: hides the app header so the field gets more space
+  useEffect(() => {
+    document.documentElement.classList.toggle('match-fullscreen', fullscreen);
+    return () => { document.documentElement.classList.remove('match-fullscreen'); };
+  }, [fullscreen]);
 
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -117,17 +124,7 @@ export function MatchDay() {
     progressSegments, totalMatchDuration, absolutePosition,
   } = timer;
 
-  // Close drawer on outside click
-  useEffect(() => {
-    if (!controlsOpen) return;
-    function handle(e: MouseEvent) {
-      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
-        setControlsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
-  }, [controlsOpen]);
+  // Drawer closes only via timer bar click — no outside-click handler needed
 
   const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
   const touchSensor   = useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 5 } });
@@ -473,15 +470,39 @@ export function MatchDay() {
             onClick={() => !isViewer && setControlsOpen((o) => !o)}
             onKeyDown={(e) => e.key === 'Enter' && !isViewer && setControlsOpen((o) => !o)}
           >
-            <span className="match-timer__period-label">{periodLabel}</span>
-            <span className={timerDisplayClass}>
-              {currentMatch.inBreak ? timer.displayBreakTime : timer.displayTime}
-            </span>
+            {isViewer ? (
+              <span className="match-timer__period-label">{periodLabel}</span>
+            ) : (
+              <div className="match-timer__bar-score match-timer__bar-score--home">
+                <span className="match-timer__bar-score-label">WIJ</span>
+                <span className="match-timer__bar-score-num">{currentMatch.homeScore}</span>
+              </div>
+            )}
+
+            {isViewer ? (
+              <span className={timerDisplayClass}>
+                {currentMatch.inBreak ? timer.displayBreakTime : timer.displayTime}
+              </span>
+            ) : (
+              <div className="match-timer__bar-center">
+                <span className="match-timer__bar-period">{periodLabel}</span>
+                <span className={timerDisplayClass}>
+                  {currentMatch.inBreak ? timer.displayBreakTime : timer.displayTime}
+                </span>
+              </div>
+            )}
+
             {!isViewer && (
-              <button
-                className={`match-timer__gear btn btn--ghost${settingsOpen ? ' btn--active' : ''}`}
-                onClick={(e) => { e.stopPropagation(); setControlsOpen(false); setSettingsOpen(true); }}
-              >⚙</button>
+              <div className="match-timer__bar-score match-timer__bar-score--away">
+                <div className="match-timer__bar-score-inner">
+                  <span className="match-timer__bar-score-label">ZIJ</span>
+                  <span className="match-timer__bar-score-num">{currentMatch.awayScore}</span>
+                </div>
+                <button
+                  className={`match-timer__gear btn btn--ghost${settingsOpen ? ' btn--active' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); setControlsOpen(false); setSettingsOpen(true); }}
+                >⚙</button>
+              </div>
             )}
           </div>
 
@@ -503,95 +524,95 @@ export function MatchDay() {
             </div>
           )}
 
-          {/* Collapsible controls drawer */}
+          {/* Collapsible controls drawer — positioned absolute so it overlays the field */}
           {controlsOpen && !isViewer && (
             <div className="match-timer__drawer">
-              {currentMatch.inBreak ? (
-                <>
-                  <button
-                    className={`btn match-timer__drawer-btn match-timer__drawer-btn--icon ${currentMatch.breakRunning ? 'btn--danger' : 'btn--primary'}`}
-                    title={currentMatch.breakRunning ? 'Pauzeer rust' : 'Hervat rust'}
-                    onClick={() => { dispatch({ type: currentMatch.breakRunning ? 'PAUSE_BREAK' : 'RESUME_BREAK' }); setControlsOpen(false); }}
-                  >
-                    {currentMatch.breakRunning ? (
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                        <rect x="5" y="4" width="4" height="16" rx="1" />
-                        <rect x="15" y="4" width="4" height="16" rx="1" />
-                      </svg>
-                    ) : (
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                        <polygon points="5,3 21,12 5,21" />
-                      </svg>
-                    )}
-                  </button>
-                  <button
-                    className="btn btn--secondary match-timer__drawer-btn match-timer__drawer-btn--icon"
-                    title={`${nextPeriodLabel} starten`}
-                    onClick={() => { dispatch({ type: 'START_NEXT_PERIOD' }); setControlsOpen(false); }}
-                  >
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <line x1="5" y1="3" x2="5" y2="21" />
-                      <path d="M5 3 L19 9 L5 15 Z" fill="currentColor" stroke="none" />
-                    </svg>
-                  </button>
-                </>
-              ) : isMatchOver ? null : (
-                <>
-                  <button
-                    className={`btn match-timer__drawer-btn match-timer__drawer-btn--icon ${currentMatch.timerRunning ? 'btn--danger' : 'btn--primary'}`}
-                    title={currentMatch.timerRunning ? 'Pauzeer' : 'Hervat'}
-                    onClick={() => { dispatch({ type: currentMatch.timerRunning ? 'STOP_TIMER' : 'START_TIMER' }); setControlsOpen(false); }}
-                  >
-                    {currentMatch.timerRunning ? (
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                        <rect x="5" y="4" width="4" height="16" rx="1" />
-                        <rect x="15" y="4" width="4" height="16" rx="1" />
-                      </svg>
-                    ) : (
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                        <polygon points="5,3 21,12 5,21" />
-                      </svg>
-                    )}
-                  </button>
-                  <button
-                    className="btn btn--secondary match-timer__drawer-btn match-timer__drawer-btn--icon"
-                    title={endPeriodLabel}
-                    onClick={() => {
-                      if (isLastPeriod) {
-                        dispatch({ type: 'STOP_TIMER' });
-                      } else {
-                        dispatch({ type: 'END_PERIOD' });
-                      }
-                      setControlsOpen(false);
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                      <line x1="5" y1="3" x2="5" y2="21" />
-                      <path d="M5 3 L19 9 L5 15 Z" fill="currentColor" stroke="none" />
-                    </svg>
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Score row */}
-          {!isViewer && (
-            <div className="match-timer__row match-timer__row--scores">
-              <div className="match-score__team match-score__team--home">
-                <span className="match-score__label">Wij</span>
-                <div className="match-score__controls">
-                  <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'home' } })}>−</button>
-                  <span className="match-score__value">{currentMatch.homeScore}</span>
-                  <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'home' } })}>+</button>
-                </div>
+              {/* Timer controls + fullscreen toggle */}
+              <div className="match-timer__drawer-controls">
+                {!isMatchOver && (currentMatch.inBreak ? (
+                    <>
+                      <button
+                        className={`btn match-timer__drawer-btn match-timer__drawer-btn--icon ${currentMatch.breakRunning ? 'btn--danger' : 'btn--primary'}`}
+                        title={currentMatch.breakRunning ? 'Pauzeer rust' : 'Hervat rust'}
+                        onClick={() => { dispatch({ type: currentMatch.breakRunning ? 'PAUSE_BREAK' : 'RESUME_BREAK' }); }}
+                      >
+                        {currentMatch.breakRunning ? (
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <rect x="5" y="4" width="4" height="16" rx="1" />
+                            <rect x="15" y="4" width="4" height="16" rx="1" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <polygon points="5,3 21,12 5,21" />
+                          </svg>
+                        )}
+                      </button>
+                      <button
+                        className="btn btn--secondary match-timer__drawer-btn match-timer__drawer-btn--icon"
+                        title={`${nextPeriodLabel} starten`}
+                        onClick={() => { dispatch({ type: 'START_NEXT_PERIOD' }); }}
+                      >
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <line x1="5" y1="3" x2="5" y2="21" />
+                          <path d="M5 3 L19 9 L5 15 Z" fill="currentColor" stroke="none" />
+                        </svg>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className={`btn match-timer__drawer-btn match-timer__drawer-btn--icon ${currentMatch.timerRunning ? 'btn--danger' : 'btn--primary'}`}
+                        title={currentMatch.timerRunning ? 'Pauzeer' : 'Hervat'}
+                        onClick={() => { dispatch({ type: currentMatch.timerRunning ? 'STOP_TIMER' : 'START_TIMER' }); }}
+                      >
+                        {currentMatch.timerRunning ? (
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <rect x="5" y="4" width="4" height="16" rx="1" />
+                            <rect x="15" y="4" width="4" height="16" rx="1" />
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                            <polygon points="5,3 21,12 5,21" />
+                          </svg>
+                        )}
+                      </button>
+                      <button
+                        className="btn btn--secondary match-timer__drawer-btn match-timer__drawer-btn--icon"
+                        title={endPeriodLabel}
+                        onClick={() => {
+                          if (isLastPeriod) {
+                            dispatch({ type: 'STOP_TIMER' });
+                          } else {
+                            dispatch({ type: 'END_PERIOD' });
+                          }
+                        }}
+                      >
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <line x1="5" y1="3" x2="5" y2="21" />
+                          <path d="M5 3 L19 9 L5 15 Z" fill="currentColor" stroke="none" />
+                        </svg>
+                      </button>
+                    </>
+                  ))}
               </div>
-              <div className="match-score__team match-score__team--away">
-                <span className="match-score__label">Zij</span>
-                <div className="match-score__controls">
-                  <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'away' } })}>−</button>
-                  <span className="match-score__value">{currentMatch.awayScore}</span>
-                  <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'away' } })}>+</button>
+
+              {/* Score controls */}
+              <div className="match-timer__drawer-scores">
+                <div className="match-score__team match-score__team--home">
+                  <span className="match-score__label">Wij</span>
+                  <div className="match-score__controls">
+                    <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'home' } })}>−</button>
+                    <span className="match-score__value">{currentMatch.homeScore}</span>
+                    <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'home' } })}>+</button>
+                  </div>
+                </div>
+                <div className="match-score__team match-score__team--away">
+                  <span className="match-score__label">Zij</span>
+                  <div className="match-score__controls">
+                    <button className="match-score__btn" onClick={() => dispatch({ type: 'UNDO_GOAL', payload: { team: 'away' } })}>−</button>
+                    <span className="match-score__value">{currentMatch.awayScore}</span>
+                    <button className="match-score__btn match-score__btn--add" onClick={() => dispatch({ type: 'SCORE_GOAL', payload: { team: 'away' } })}>+</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -691,7 +712,26 @@ export function MatchDay() {
       )}
 
       {settingsOpen && (
-        <Modal title="Resetten" onClose={() => setSettingsOpen(false)}>
+        <Modal title="Instellingen" onClose={() => setSettingsOpen(false)}>
+          <div className="timer-settings__section">
+            <span className="timer-settings__section-label">Weergave</span>
+            <label className="timer-settings__toggle-row">
+              <span className="timer-settings__toggle-label">Volledig scherm</span>
+              <span className={`timer-settings__toggle${fullscreen ? ' timer-settings__toggle--on' : ''}`}>
+                <input
+                  type="checkbox"
+                  className="timer-settings__toggle-input"
+                  checked={fullscreen}
+                  onChange={() => setFullscreen((f) => !f)}
+                />
+                <span className="timer-settings__toggle-track">
+                  <span className="timer-settings__toggle-thumb" />
+                </span>
+              </span>
+            </label>
+          </div>
+          <div className="timer-settings__section">
+            <span className="timer-settings__section-label">Resetten</span>
           <div className="timer-settings__reset-grid">
             <button className="timer-settings__reset-btn" onClick={() => { dispatch({ type: 'RESET_TIMER' }); setSettingsOpen(false); }}>
               <span className="timer-settings__reset-icon"><WedstrijdIcon size={20} /></span>
@@ -723,6 +763,7 @@ export function MatchDay() {
               <span className="timer-settings__reset-icon">↺</span>
               Alles
             </button>
+          </div>
           </div>
         </Modal>
       )}

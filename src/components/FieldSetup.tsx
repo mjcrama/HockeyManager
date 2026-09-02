@@ -62,12 +62,11 @@ const PLAYER_COUNT_OPTIONS: { value: PlayerCount; label: string }[] = [
   { value: 3,  label: '3v3'   },
 ];
 
-const PROFILE_KEYS: MatchProfileKey[] = ['p15', 'p20', 'p25', 'p30', 'custom'];
+const PROFILE_KEYS: MatchProfileKey[] = ['p15', 'p20', 'p25', 'p30', 'p17', 'custom'];
 
 function profileChipLabel(key: MatchProfileKey): string {
   if (key === 'custom') return 'Aangepast';
-  const p = MATCH_PROFILES[key];
-  return `${p.periods}×${p.periodMinutes} +${p.breakMinutes}`;
+  return MATCH_PROFILES[key].label;
 }
 
 export function FieldSetup() {
@@ -518,17 +517,20 @@ export function FieldSetup() {
             </div>
 
             <div className="settings-modal__field">
-              <label className="settings-modal__field-label">Trillen bij einde periode</label>
-              <div className="timer-settings__row">
-                <button
-                  className={`control-btn${!currentMatch.timerVibrate ? ' control-btn--active' : ''}`}
-                  onClick={() => dispatch({ type: 'SET_TIMER_VIBRATE', payload: false })}
-                >Uit</button>
-                <button
-                  className={`control-btn${currentMatch.timerVibrate ? ' control-btn--active' : ''}`}
-                  onClick={() => dispatch({ type: 'SET_TIMER_VIBRATE', payload: true })}
-                >Aan</button>
-              </div>
+              <label className="timer-settings__toggle-row">
+                <span className="settings-modal__field-label" style={{ margin: 0 }}>Trillen bij einde periode</span>
+                <span className={`timer-settings__toggle${currentMatch.timerVibrate ? ' timer-settings__toggle--on' : ''}`}>
+                  <input
+                    type="checkbox"
+                    className="timer-settings__toggle-input"
+                    checked={currentMatch.timerVibrate}
+                    onChange={(e) => dispatch({ type: 'SET_TIMER_VIBRATE', payload: e.target.checked })}
+                  />
+                  <span className="timer-settings__toggle-track">
+                    <span className="timer-settings__toggle-thumb" />
+                  </span>
+                </span>
+              </label>
             </div>
         </Modal>
       )}

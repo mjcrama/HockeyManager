@@ -26,7 +26,7 @@ export type Position =
  */
 export type FieldSize = 'full' | 'three-quarter' | 'half' | 'small' | 'mini';
 
-export type MatchProfileKey = 'p15' | 'p20' | 'p25' | 'p30' | 'custom';
+export type MatchProfileKey = 'p15' | 'p20' | 'p25' | 'p30' | 'p17' | 'custom';
 
 export type PlayerCount = 11 | 9 | 8 | 6 | 3;
 
@@ -88,8 +88,9 @@ export interface Match {
   currentPeriod: number;     // 1-based
   inBreak: boolean;
   breakRunning: boolean;
-  breakDuration: number;     // seconds
-  breakSeconds: number;      // accumulated break seconds when paused
+  breakDuration: number;          // seconds (default / fallback for all breaks)
+  breakDurations?: number[];      // per-break override: breakDurations[i] = duration of break after period i+1
+  breakSeconds: number;           // accumulated break seconds when paused
   breakStartedAt: number | null;
   injuredPlayerIds: string[];
 }

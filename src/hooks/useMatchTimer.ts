@@ -218,6 +218,16 @@ export function useMatchTimer(match: Match): MatchTimerState {
   const nextPeriodLabel = getPeriodLabel(match.currentPeriod + 1, match.periods);
   const endPeriodLabel = isLastPeriod ? 'Wedstrijd beëindigen' : `Einde ${getPeriodLabel(match.currentPeriod, match.periods)} →`;
 
+  // Helper: duration of break after period i (0-based)
+  function breakDurationAt(i: number): number {
+    return match.breakDurations?.[i] ?? match.breakDuration;
+  }
+  function sumBreaks(count: number): number {
+    let s = 0;
+    for (let i = 0; i < count; i++) s += breakDurationAt(i);
+    return s;
+  }
+
   // Build match progress segments
   const progressSegments: ProgressSegment[] = [];
   let segOffset = 0;
@@ -225,8 +235,9 @@ export function useMatchTimer(match: Match): MatchTimerState {
     progressSegments.push({ type: 'period', duration: match.timerDuration, start: segOffset });
     segOffset += match.timerDuration;
     if (i < match.periods - 1) {
-      progressSegments.push({ type: 'break', duration: match.breakDuration, start: segOffset });
-      segOffset += match.breakDuration;
+      const bd = breakDurationAt(i);
+      progressSegments.push({ type: 'break', duration: bd, start: segOffset });
+      segOffset += bd;
     }
   }
   const totalMatchDuration = segOffset;
@@ -235,10 +246,10 @@ export function useMatchTimer(match: Match): MatchTimerState {
     ? totalMatchDuration
     : match.inBreak
       ? match.currentPeriod * match.timerDuration +
-        (match.currentPeriod - 1) * match.breakDuration +
+        sumBreaks(match.currentPeriod - 1) +
         currentBreakSeconds
       : (match.currentPeriod - 1) * match.timerDuration +
-        (match.currentPeriod - 1) * match.breakDuration +
+        sumBreaks(match.currentPeriod - 1) +
         currentSeconds;
 
   return {

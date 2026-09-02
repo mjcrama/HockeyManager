@@ -366,6 +366,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
           periods: profile.periods,
           timerDuration: profile.periodMinutes * 60,
           breakDuration: profile.breakMinutes * 60,
+          breakDurations: profile.breakMinutesPerBreak
+            ? profile.breakMinutesPerBreak.map((m) => m * 60)
+            : undefined,
           timerSeconds: 0,
           timerStartedAt: null,
           timerRunning: false,
@@ -405,6 +408,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
       const elapsed = state.currentMatch.timerStartedAt != null
         ? Math.floor((Date.now() - state.currentMatch.timerStartedAt) / 1000)
         : 0;
+      const { currentPeriod, breakDurations, breakDuration } = state.currentMatch;
+      // break index = currentPeriod - 1 (break after period N is index N-1)
+      const upcomingBreakDuration = breakDurations?.[currentPeriod - 1] ?? breakDuration;
       return {
         ...state,
         currentMatch: {
@@ -416,6 +422,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
           breakRunning: true,
           breakSeconds: 0,
           breakStartedAt: Date.now(),
+          breakDuration: upcomingBreakDuration,
         },
       };
     }
