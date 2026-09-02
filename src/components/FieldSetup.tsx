@@ -25,6 +25,7 @@ import {
 } from './selectionIntents';
 import { FORMATIONS_BY_COUNT, getPositions, matchesPreferred } from '../data/formations';
 import { MATCH_PROFILES } from '../data/matchProfiles';
+import { playEndBeep } from '../hooks/useMatchTimer';
 import type { FieldSize, PlayerCount, Player, MatchProfileKey } from '../types';
 
 function SetupBenchChip({ player, isSelected, onClick }: { player: Player; isSelected?: boolean; onClick?: () => void }) {
@@ -489,15 +490,30 @@ export function FieldSetup() {
             </div>
 
             <div className="settings-modal__field">
-              <label className="settings-modal__field-label">Geluid bij einde periode</label>
-              <div className="timer-settings__row">
-                {(['off', 'soft', 'loud'] as const).map((v) => (
-                  <button
-                    key={v}
-                    className={`control-btn${currentMatch.timerBeep === v ? ' control-btn--active' : ''}`}
-                    onClick={() => dispatch({ type: 'SET_TIMER_BEEP', payload: v })}
-                  >{{ off: 'Uit', soft: 'Zacht', loud: 'Hard' }[v]}</button>
-                ))}
+              <label className="settings-modal__field-label">
+                Geluid bij einde periode
+                <span className="settings-modal__field-value">
+                  {currentMatch.timerBeep === 0 ? 'Uit' : `${currentMatch.timerBeep}%`}
+                </span>
+              </label>
+              <div className="timer-settings__volume">
+                <span className="timer-settings__volume-label">🔇</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={currentMatch.timerBeep}
+                  className="timer-settings__slider"
+                  onChange={(e) => dispatch({ type: 'SET_TIMER_BEEP', payload: Number(e.target.value) })}
+                />
+                <span className="timer-settings__volume-label">🔊</span>
+                <button
+                  className="control-btn timer-settings__test-btn"
+                  onClick={() => { if (currentMatch.timerBeep > 0) playEndBeep(currentMatch.timerBeep); }}
+                  disabled={currentMatch.timerBeep === 0}
+                  title="Test geluid"
+                >▶ Test</button>
               </div>
             </div>
 

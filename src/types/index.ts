@@ -79,7 +79,7 @@ export interface Match {
   timerRunning: boolean;
   timerDuration: number;   // seconds per period
   timerCountDown: boolean;
-  timerBeep: 'off' | 'soft' | 'loud';
+  timerBeep: number; // 0 = off, 1–100 = volume
   timerVibrate: boolean;
   homeScore: number;
   awayScore: number;
@@ -125,7 +125,7 @@ export type AppAction =
   | { type: 'UNDO_GOAL'; payload: { team: 'home' | 'away' } }
   | { type: 'SET_TIMER_DURATION'; payload: number }
   | { type: 'SET_TIMER_COUNTDOWN'; payload: boolean }
-  | { type: 'SET_TIMER_BEEP'; payload: 'off' | 'soft' | 'loud' }
+  | { type: 'SET_TIMER_BEEP'; payload: number }
   | { type: 'SET_TIMER_VIBRATE'; payload: boolean }
   | { type: 'SET_MATCH_PROFILE'; payload: MatchProfileKey }
   | { type: 'SET_PERIODS'; payload: number }

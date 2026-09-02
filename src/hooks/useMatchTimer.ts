@@ -8,25 +8,59 @@ function formatTime(seconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function playEndBeep(volume: 'soft' | 'loud') {
+export function playEndBeep(volume: number) {
+  if (volume <= 0) return;
   try {
     const ctx = new AudioContext();
-    const gainLevel = volume === 'loud' ? 1.0 : 0.3;
+    const gainLevel = (volume / 100) * 2.0; // intentionally > 1 to drive clipper hard
+
+    // Hard clipper — forces signal to maximum output, creates harmonic-rich buzz
+    const clipper = ctx.createWaveShaper();
+    const curve = new Float32Array(512);
+    for (let i = 0; i < 512; i++) {
+      const x = (i * 2) / 511 - 1;
+      curve[i] = Math.max(-1, Math.min(1, x * 8)); // hard clip at ±1
+    }
+    clipper.curve = curve;
+
+    // Compressor after clipper to keep output at max without distortion artifacts
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -3;
+    compressor.knee.value = 1;
+    compressor.ratio.value = 20;
+    compressor.attack.value = 0.001;
+    compressor.release.value = 0.05;
+
+    clipper.connect(compressor);
+    compressor.connect(ctx.destination);
+
     const roundDuration = 1.1;
     const pause = 2.0;
+
+    // Frequencies in 2000–3000Hz range — peak of phone speaker output AND human hearing
+    const layers: { freq: number; detune: number; type: OscillatorType }[] = [
+      { freq: 2000, detune:   0, type: 'square'   }, // main: piercing, cuts through noise
+      { freq: 2000, detune: +10, type: 'square'   }, // slightly detuned: beating effect
+      { freq: 1000, detune:   0, type: 'sawtooth' }, // octave lower: body and fullness
+    ];
+
     [0, 1, 2].forEach((round) => {
       const base = round * (roundDuration + pause);
       [0, 0.4, 0.8].forEach((offset) => {
         const t = base + offset;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(gainLevel, ctx.currentTime + t);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
-        osc.start(ctx.currentTime + t);
-        osc.stop(ctx.currentTime + t + 0.3);
+        layers.forEach(({ freq, detune, type }) => {
+          const osc  = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(clipper);
+          osc.type = type;
+          osc.frequency.value = freq;
+          osc.detune.value = detune;
+          gain.gain.setValueAtTime(gainLevel, ctx.currentTime + t);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.45);
+          osc.start(ctx.currentTime + t);
+          osc.stop(ctx.currentTime + t + 0.45);
+        });
       });
     });
   } catch { /* audio not available */ }
@@ -65,6 +99,47 @@ export function useMatchTimer(match: Match): MatchTimerState {
     return () => clearInterval(id);
   }, [match.timerRunning, match.breakRunning]);
 
+  // Silent audio loop — keeps iOS JS alive when screen is locked.
+  // iOS suspends JS in PWAs unless audio is playing; this tiny near-zero
+  // buffer running in a loop prevents that suspension.
+  const silentCtxRef = useRef<AudioContext | null>(null);
+  const silentSrcRef = useRef<AudioBufferSourceNode | null>(null);
+  useEffect(() => {
+    const isRunning = match.timerRunning || match.breakRunning;
+    if (isRunning) {
+      try {
+        if (!silentCtxRef.current || silentCtxRef.current.state === 'closed') {
+          silentCtxRef.current = new AudioContext();
+        }
+        const ctx = silentCtxRef.current;
+        if (ctx.state === 'suspended') ctx.resume();
+        // 1-second buffer of near-zero audio (not true silence — iOS detects that)
+        const buffer = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 0.0002 - 0.0001;
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.loop = true;
+        src.connect(ctx.destination);
+        src.start();
+        silentSrcRef.current = src;
+      } catch { /* audio not available */ }
+    } else {
+      try {
+        silentSrcRef.current?.stop();
+        silentSrcRef.current = null;
+        silentCtxRef.current?.close();
+        silentCtxRef.current = null;
+      } catch { /* ignore */ }
+    }
+    return () => {
+      try {
+        silentSrcRef.current?.stop();
+        silentSrcRef.current = null;
+      } catch { /* ignore */ }
+    };
+  }, [match.timerRunning, match.breakRunning]);
+
   // Compute current elapsed seconds from wall clock
   const currentSeconds = match.timerRunning && match.timerStartedAt != null
     ? match.timerSeconds + Math.floor((Date.now() - match.timerStartedAt) / 1000)
@@ -86,8 +161,13 @@ export function useMatchTimer(match: Match): MatchTimerState {
       currentSeconds >= match.timerDuration;
 
     if (periodEnded) {
-      if (match.timerBeep !== 'off') playEndBeep(match.timerBeep);
-      if (match.timerVibrate && 'vibrate' in navigator) navigator.vibrate([300, 150, 300, 150, 300]);
+      if (match.timerBeep > 0) playEndBeep(match.timerBeep);
+      if (match.timerVibrate && 'vibrate' in navigator) navigator.vibrate([
+        // Three rounds of: rapid buzz → pause → long pulse → pause
+        80, 40, 80, 40, 80, 80, 400, 200,
+        80, 40, 80, 40, 80, 80, 400, 200,
+        80, 40, 80, 40, 80, 80, 600,
+      ]);
     }
 
     const prevBreak = prevBreakSeconds.current;
@@ -98,8 +178,13 @@ export function useMatchTimer(match: Match): MatchTimerState {
       currentBreakSeconds >= match.breakDuration;
 
     if (breakEnded) {
-      if (match.timerBeep !== 'off') playEndBeep(match.timerBeep);
-      if (match.timerVibrate && 'vibrate' in navigator) navigator.vibrate([300, 150, 300, 150, 300]);
+      if (match.timerBeep > 0) playEndBeep(match.timerBeep);
+      if (match.timerVibrate && 'vibrate' in navigator) navigator.vibrate([
+        // Three rounds of: rapid buzz → pause → long pulse → pause
+        80, 40, 80, 40, 80, 80, 400, 200,
+        80, 40, 80, 40, 80, 80, 400, 200,
+        80, 40, 80, 40, 80, 80, 600,
+      ]);
     }
   });
 

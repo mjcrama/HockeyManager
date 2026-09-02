@@ -28,7 +28,7 @@ function createDefaultMatch(): Match {
     timerRunning: false,
     timerDuration: 35 * 60,
     timerCountDown: false,
-    timerBeep: 'loud',
+    timerBeep: 80,
     timerVibrate: true,
     homeScore: 0,
     awayScore: 0,
@@ -60,7 +60,12 @@ function loadState(): AppState {
     if (!parsed.currentMatch.shootouts) parsed.currentMatch.shootouts = [];
     if (parsed.currentMatch.timerDuration == null) parsed.currentMatch.timerDuration = 25 * 60;
     if (parsed.currentMatch.timerCountDown == null) parsed.currentMatch.timerCountDown = false;
-    if (parsed.currentMatch.timerBeep == null) parsed.currentMatch.timerBeep = 'loud';
+    // Migrate old string values to numeric volume
+    if (parsed.currentMatch.timerBeep == null)         parsed.currentMatch.timerBeep = 80;
+    else if (parsed.currentMatch.timerBeep === ('off'  as any)) parsed.currentMatch.timerBeep = 0;
+    else if (parsed.currentMatch.timerBeep === ('soft' as any)) parsed.currentMatch.timerBeep = 40;
+    else if (parsed.currentMatch.timerBeep === ('loud' as any)) parsed.currentMatch.timerBeep = 80;
+    else if (typeof parsed.currentMatch.timerBeep !== 'number')  parsed.currentMatch.timerBeep = 80;
     if (parsed.currentMatch.timerVibrate == null) parsed.currentMatch.timerVibrate = true;
     if (parsed.currentMatch.homeScore == null) parsed.currentMatch.homeScore = 0;
     if (parsed.currentMatch.awayScore == null) parsed.currentMatch.awayScore = 0;
