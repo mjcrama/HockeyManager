@@ -721,24 +721,11 @@ body {
   transform: translateY(-1px);
 }
 
-.player-chip--small {
-  padding: 8px 12px;
-  font-size: 12px;
-  min-width: 72px;
-  min-height: 40px;
-}
-
 .player-chip--medium {
   padding: 12px 16px;
   font-size: 14px;
   min-width: 100px;
   min-height: 48px;
-}
-
-.player-chip--large {
-  padding: 12px 20px;
-  font-size: 15px;
-  min-width: 96px;
 }
 
 .player-chip--on-field {
@@ -869,11 +856,6 @@ body {
   line-height: 0;
 }
 
-.bench-injury-btn--active {
-  background: rgba(185, 28, 28, 0.55);
-  color: #fca5a5;
-}
-
 .bench-chip-wrapper--subbed .player-chip {
   border-color: rgba(96, 165, 250, 0.30);
   background: rgba(10, 25, 60, 0.6);
@@ -955,11 +937,6 @@ body {
   gap: 6px;
   padding-bottom: 24px;
   touch-action: none;
-}
-
-.bench__row-break {
-  width: 100%;
-  height: 0;
 }
 
 /* ===== PLAYER MANAGER ===== */
@@ -1541,12 +1518,6 @@ body {
   align-items: center;
 }
 
-.match-timer__row--scores {
-  justify-content: space-around;
-  padding: 8px 16px 10px;
-  border-top: 1px solid var(--color-border);
-}
-
 .match-timer__row--viewer {
   justify-content: center;
   gap: 16px;
@@ -1730,12 +1701,6 @@ body {
   font-size: 12px;
   padding: 6px 10px;
   min-height: 36px;
-}
-
-.timer-settings__label {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
 }
 
 .timer-settings__input {
@@ -2033,12 +1998,6 @@ body {
   height: 100%;
 }
 
-.sub-zone {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
 .match-day__sidebar {
   display: flex;
   flex-direction: column;
@@ -2090,160 +2049,6 @@ body {
   flex-direction: column;
   gap: 6px;
   touch-action: none;
-}
-
-/* ===== SUBSTITUTION MODAL ===== */
-.sub-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.sub-modal {
-  background: var(--color-surface);
-  border: 1px solid rgba(21, 101, 192, 0.4);
-  border-radius: var(--radius-xl);
-  padding: 28px;
-  min-width: 320px;
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(21, 101, 192, 0.15);
-}
-
-.sub-modal__title {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 20px;
-  color: var(--color-text);
-}
-
-.sub-modal__players {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.sub-modal__player {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  font-size: 14px;
-}
-
-.sub-modal__player--on {
-  background: rgba(21, 101, 192, 0.15);
-  border: 1px solid rgba(21, 101, 192, 0.3);
-}
-
-.sub-modal__player--off {
-  background: rgba(218, 54, 51, 0.1);
-  border: 1px solid rgba(218, 54, 51, 0.2);
-}
-
-.sub-modal__arrow {
-  font-size: 16px;
-}
-
-.sub-modal__player--on .sub-modal__arrow {
-  color: var(--color-green-light);
-}
-
-.sub-modal__player--off .sub-modal__arrow {
-  color: var(--color-red-light);
-}
-
-.sub-modal__time {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  text-align: center;
-}
-
-.sub-modal__actions {
-  display: flex;
-  gap: 10px;
-}
-
-/* ===== SUBSTITUTION LOG ===== */
-.sub-log {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.sub-log__title {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--color-text-muted);
-  margin-bottom: 12px;
-}
-
-.sub-log__empty {
-  font-size: 12px;
-  color: var(--color-text-dim);
-  font-style: italic;
-}
-
-.sub-log__list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sub-log__item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  background: var(--color-surface-3);
-  border-radius: var(--radius-md);
-  border-left: 3px solid var(--color-green);
-  font-size: 12px;
-}
-
-.sub-log__minute {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  color: var(--color-blue-light);
-  font-size: 11px;
-}
-
-.sub-log__on {
-  color: var(--color-green-light);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sub-log__off {
-  color: var(--color-red-light);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sub-log__arrow--on {
-  color: var(--color-green-light);
-}
-
-.sub-log__arrow--off {
-  color: var(--color-red-light);
-}
-
-.sub-log__position {
-  color: var(--color-text-dim);
-  font-size: 10px;
 }
 
 /* ===== SHOOTOUT TRACKER ===== */
@@ -2348,13 +2153,6 @@ body {
   color: var(--color-text-dim);
   font-style: italic;
   margin-top: -4px;
-}
-
-.shootout-picker__empty {
-  flex: 1;
-  font-size: 24px;
-  color: var(--color-text-dim);
-  padding-left: 4px;
 }
 
 .shootout-sort {
@@ -2477,10 +2275,6 @@ body {
   font-weight: 600;
 }
 
-.shootout-row__sep {
-  color: var(--color-text-dim);
-}
-
 .shootout-row__missed {
   color: var(--color-red-light);
 }
@@ -2524,12 +2318,6 @@ body {
 
 .shootout-row__actions .btn--icon {
   min-width: 44px;
-}
-
-.shootout-picker__header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .shootout-reset {
@@ -2872,11 +2660,6 @@ body {
     grid-template-columns: repeat(4, 1fr);
     gap: 6px;
     width: 100%;
-  }
-
-  .bench__row-break {
-    grid-column: 1 / -1;
-    height: 0;
   }
 
   .bench__players .bench-chip-wrapper,
